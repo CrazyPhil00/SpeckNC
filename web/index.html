@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNC Control Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/font-awesome.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1e1e1e;
+            --bg-hover: #252525;
+            --accent-primary: #4682b4;
+            --accent-hover: #5a94cc;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #06b6d4;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #121212 0%, #080808 100%);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: var(--text-primary);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            padding: 0 1.5rem;
+            gap: 0.5rem;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow: auto;
+            padding: 1.5rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Dashboard Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr 350px;
+            gap: 1.5rem;
+            height: calc(100vh - 140px);
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Jogging Panel */
+        .jog-container {
+            grid-row: 1 / 3;
+        }
+
+        .jog-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .jog-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .jog-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .jog-btn:active {
+            transform: translateY(0);
+        }
+
+        .jog-btn.center {
+            background: var(--bg-primary);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .axis-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .axis-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .axis-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .axis-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .axis-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .step-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .step-btn {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .step-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        /* Console */
+        .console-container {
+            grid-row: 1;
+        }
+
+        .console-output {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .console-line {
+            padding: 0.25rem 0;
+        }
+
+        .console-line.send {
+            color: var(--accent-primary);
+        }
+
+        .console-line.receive {
+            color: var(--success);
+        }
+
+        .console-line.error {
+            color: var(--danger);
+        }
+
+        .console-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .console-input {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .console-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* Macros */
+        .macro-container {
+            grid-row: 2;
+        }
+
+        .macro-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .macro-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .macro-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .macro-name {
+            font-weight: 600;
+        }
+
+        .macro-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Info Panels */
+        .info-container {
+            grid-row: 1 / 3;
+        }
+
+        .info-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .info-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .temp-value {
+            color: var(--warning);
+        }
+
+        .current-value {
+            color: var(--info);
+        }
+
+        /* Button Styles */
+        .btn {
+            background: var(--accent-primary);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        /* Pin Configuration Page */
+        .pin-config-wrapper {
+            width: 100%;
+            height: calc(100vh - 140px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pcb-image-wrapper {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pcb-render-image {
+            width: 120%;
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 4px 60px rgba(70, 130, 180, 0.25))
+                    drop-shadow(0 15px 25px rgba(0, 0, 0, 0.5));
+        }
+
+        .pcb-hotspots {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            pointer-events: none;
+        }
+
+        .hotspot {
+            fill: rgba(70, 180, 130, 0.15);
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            stroke: transparent;
+            stroke-width: 3px;
+            pointer-events: all;
+        }
+
+        .hotspot:hover {
+            fill: rgba(70, 130, 210, 0.4);
+            stroke: rgba(70, 130, 210, 0.9);
+        }
+
+        .hotspot.active {
+            fill: rgba(70, 130, 210, 0.5);
+            stroke: rgba(70, 130, 210, 1.0);
+            stroke-width: 4px;
+        }
+
+        .highlight-overlay {
+            opacity: 0;
+            fill: rgba(70, 130, 210, 0.4);
+            stroke: rgba(70, 130, 210, 1.0);
+            stroke-width: 4px;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .highlight-overlay.visible {
+            opacity: 1;
+        }
+
+        /* Configuration Panel */
+        .config-panel {
+            position: fixed;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            width: 420px; 
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+            pointer-events: none;
+        }
+
+        .config-panel.open {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .config-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move; /* Indicates drag capability */
+            user-select: none; /* Prevents text selection while dragging */
+        }
+
+        .config-header h3 {
+            margin: 0;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .config-content {
+            flex: 1;
+            padding: 1.25rem;
+            overflow-y: auto;
+        }
+
+        .config-section {
+            display: none;
+        }
+
+        .config-section.active {
+            display: block;
+        }
+
+        /* --- Sub-Navigation Tabs --- */
+        .sub-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            background: rgba(0,0,0,0.2);
+            padding: 0.35rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .sub-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .sub-tab:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .sub-tab.active {
+            background: var(--bg-tertiary);
+            color: var(--accent-primary);
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sub-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .sub-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* -------------------------------- */
+
+        .config-item {
+            margin-bottom: 1.25rem;
+        }
+
+        .config-item > label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .config-item select,
+        .config-item input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .config-item select:focus,
+        .config-item input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .sub-options {
+            margin-left: 1.25rem;
+            border-left: 2px solid var(--border-color);
+            padding-left: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .radio-group input[type="radio"] {
+            opacity: 0;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+        }
+
+        .radio-group label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .radio-group label:hover {
+            color: var(--text-primary);
+        }
+
+        .radio-group label::before {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+        }
+
+        .radio-group label::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 9px;
+            transform: translate(-50%, -50%) scale(0);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .radio-group label:has(input[type="radio"]:checked) {
+            color: var(--text-primary);
+        }
+
+        .radio-group label:has(input[type="radio"]:checked)::before {
+            border-color: var(--accent-primary);
+        }
+
+        .radio-group label:has(input[type="radio"]:checked)::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+
+
+
+
+
+         .axis-selector {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .axis-selector input[type="radio"] {
+            opacity: 0;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+        }
+
+        .axis-selector label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .axis-selector label:hover {
+            color: var(--text-primary);
+        }
+
+        .axis-selector label::before {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+            display: inline-block;
+            position: relative; 
+     }
+
+
+        .axis-selector label::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 27.5%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .axis-selector label:has(input[type="radio"]:checked) {
+            color: var(--text-primary);
+        }
+
+        .axis-selector label:has(input[type="radio"]:checked)::before {
+            border-color: var(--accent-primary);
+        }
+
+        .axis-selector label:has(input[type="radio"]:checked)::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+
+
+
+
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 45px;
+            height: 24px;
+            
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-tertiary);
+            transition: 0.3s;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-secondary);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(21px);
+            background: white;
+        }
+
+        .config-footer {
+            padding: 1.25rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .save-btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .save-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* File Browser */
+        .file-browser {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: calc(100vh - 140px);
+        }
+
+        .file-toolbar {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .file-path {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .file-list-container {
+            flex: 1;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .file-item {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .file-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-name {
+            font-weight: 600;
+        }
+
+        .file-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Ace Editor Modal */
+        .editor-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .editor-modal.active {
+            display: flex;
+        }
+
+        .editor-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-filename {
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #ace-editor {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        @media (max-width: 1400px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-microchip"></i> CNC Control</h1>
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span id="connection-status">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-network-wired"></i>
+                    <span id="connection-host">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="dashboard">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button class="nav-tab" data-tab="config">
+                <i class="fas fa-cog"></i> Configuration
+            </button>
+            <button class="nav-tab" data-tab="files">
+                <i class="fas fa-folder-open"></i> Files
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Tab -->
+            <div class="tab-content active" id="dashboard">
+                <div class="dashboard-grid">
+                    <!-- Jogging Panel -->
+                    <div class="panel jog-container">
+                        <div class="panel-header">
+                            <span><i class="fas fa-gamepad"></i> Jogging Control</span>
+                        </div>
+                        
+                        <div class="jog-grid">
+                            <button class="jog-btn" data-dir="xy-"><i class="fas fa-arrow-up-left"></i></button>
+                            <button class="jog-btn" data-dir="y+"><i class="fas fa-arrow-up"></i></button>
+                            <button class="jog-btn" data-dir="xy+"><i class="fas fa-arrow-up-right"></i></button>
+                            <button class="jog-btn" data-dir="x-"><i class="fas fa-arrow-left"></i></button>
+                            <button class="jog-btn center">XY</button>
+                            <button class="jog-btn" data-dir="x+"><i class="fas fa-arrow-right"></i></button>
+                            <button class="jog-btn" data-dir="xy--"><i class="fas fa-arrow-down-left"></i></button>
+                            <button class="jog-btn" data-dir="y-"><i class="fas fa-arrow-down"></i></button>
+                            <button class="jog-btn" data-dir="x+y-"><i class="fas fa-arrow-down-right"></i></button>
+                        </div>
+
+                        <div class="axis-controls">
+                            <div class="axis-control">
+                                <span>Z Axis</span>
+                                <div class="axis-buttons">
+                                    <button class="axis-btn" data-axis="z" data-dir="-"><i class="fas fa-minus"></i> Z</button>
+                                    <button class="axis-btn" data-axis="z" data-dir="+">Z <i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                            <div class="axis-control">
+                                <span>A Axis</span>
+                                <div class="axis-buttons">
+                                    <button class="axis-btn" data-axis="a" data-dir="-"><i class="fas fa-minus"></i> A</button>
+                                    <button class="axis-btn" data-axis="a" data-dir="+">A <i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-selector">
+                            <button class="step-btn" data-step="0.1">0.1mm</button>
+                            <button class="step-btn active" data-step="1">1mm</button>
+                            <button class="step-btn" data-step="10">10mm</button>
+                            <button class="step-btn" data-step="100">100mm</button>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+                            <button class="btn btn-success" style="flex: 1;" id="home-all-btn">
+                                <i class="fas fa-home"></i> Home All
+                            </button>
+                            <button class="btn btn-danger" style="flex: 1;" id="estop-btn">
+                                <i class="fas fa-stop"></i> E-Stop
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Console -->
+                    <div class="panel console-container">
+                        <div class="panel-header">
+                            <span><i class="fas fa-terminal"></i> G-Code Console</span>
+                            <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="clearConsole()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                        
+                        <div class="console-output" id="console-output">
+                            <div class="console-line receive">// CNC Controller Ready</div>
+                            <div class="console-line receive">// Firmware: v1.0.0</div>
+                        </div>
+
+                        <div class="console-input-group">
+                            <input type="text" class="console-input" id="console-input" placeholder="Enter G-Code command...">
+                            <button class="btn" onclick="sendCommand()">
+                                <i class="fas fa-paper-plane"></i> Send
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Macros -->
+                    <div class="panel macro-container">
+                        <div class="panel-header">
+                            <span><i class="fas fa-magic"></i> Macros</span>
+                            <button class="btn btn-secondary" style="padding: 0.5rem 1rem;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        
+                        <div class="macro-list">
+                            <button class="macro-btn" onclick="runMacro('probe-z')">
+                                <span class="macro-name">Probe Z</span>
+                                <span class="macro-desc">Auto Z-axis probing</span>
+                            </button>
+                            <button class="macro-btn" onclick="runMacro('park')">
+                                <span class="macro-name">Park Position</span>
+                                <span class="macro-desc">Move to safe position</span>
+                            </button>
+                            <button class="macro-btn" onclick="runMacro('spindle-warmup')">
+                                <span class="macro-name">Spindle Warmup</span>
+                                <span class="macro-desc">Warmup routine</span>
+                            </button>
+                            <button class="macro-btn" onclick="runMacro('tool-change')">
+                                <span class="macro-name">Tool Change</span>
+                                <span class="macro-desc">Automated tool change</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Info Panel -->
+                    <div class="panel info-container">
+                        <div class="panel-header">
+                            <span><i class="fas fa-info-circle"></i> System Info</span>
+                        </div>
+                        
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <div class="info-row">
+                                    <span class="info-label">X Position</span>
+                                    <span class="info-value" id="pos-x">0.000 mm</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Y Position</span>
+                                    <span class="info-value" id="pos-y">0.000 mm</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Z Position</span>
+                                    <span class="info-value" id="pos-z">0.000 mm</span>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <div class="info-row">
+                                    <span class="info-label">X Temp</span>
+                                    <span class="info-value temp-value" id="temp-x">42°C</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Y Temp</span>
+                                    <span class="info-value temp-value" id="temp-y">38°C</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Z Temp</span>
+                                    <span class="info-value temp-value" id="temp-z">35°C</span>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <div class="info-row">
+                                    <span class="info-label">X Current</span>
+                                    <span class="info-value current-value" id="current-x">1.2 A</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Y Current</span>
+                                    <span class="info-value current-value" id="current-y">1.1 A</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Z Current</span>
+                                    <span class="info-value current-value" id="current-z">0.8 A</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Tab -->
+            <div class="tab-content" id="config">
+                <div class="pin-config-wrapper">
+                    <div class="pcb-image-wrapper">
+                        <img src="render.png" alt="CNC Board PCB" class="pcb-render-image" id="pcb-image">
+                        
+                        <svg class="pcb-hotspots" viewBox="0 0 1600 550" preserveAspectRatio="xMidYMid meet">
+                            <!-- Power Terminal (Top Left) -->
+                         
+                            
+                            <!-- Input Terminals (Top Right - 5 terminals) -->
+                            <rect id="input1" class="hotspot" x="695" y="15" width="52" height="90" 
+                                  data-terminal-type="input" data-terminal-name="INPUT 1"></rect>
+                            <rect id="input2" class="hotspot" x="757" y="15" width="52" height="90" 
+                                  data-terminal-type="input" data-terminal-name="INPUT 2"></rect>
+                            <rect id="input3" class="hotspot" x="820" y="15" width="52" height="90" 
+                                  data-terminal-type="input" data-terminal-name="INPUT 3"></rect>
+                            <rect id="input4" class="hotspot" x="882" y="15" width="52" height="90" 
+                                  data-terminal-type="input" data-terminal-name="INPUT 4"></rect>
+                     
+                            
+                            <!-- Relay Terminal (Bottom Left with 3 smaller terminals) -->
+                            <rect id="relay1" class="hotspot" x="509" y="467" width="67" height="55"
+                                  data-terminal-type="relay" data-terminal-name="RELAY 1"></rect>
+                            <rect id="relay2" class="hotspot" x="608" y="467" width="67" height="55"
+                                  data-terminal-type="relay" data-terminal-name="RELAY 2"></rect>
+                            <rect id="relay3" class="hotspot" x="707" y="467" width="67" height="55"
+                                  data-terminal-type="relay" data-terminal-name="RELAY 3"></rect>
+                            
+                            <!-- Axis Terminals (Bottom - 7 terminals) -->
+                            <rect id="axis-x" class="hotspot" x="791" y="467" width="90" height="55" 
+                                  data-terminal-type="axis" data-terminal-name="AXIS X"></rect>
+                            <rect id="axis-y" class="hotspot" x="898" y="467" width="90" height="55" 
+                                  data-terminal-type="axis" data-terminal-name="AXIS Y"></rect>
+                            <rect id="axis-z" class="hotspot" x="1005" y="467" width="90" height="55" 
+                                  data-terminal-type="axis" data-terminal-name="AXIS Z"></rect>
+                           <rect id="axis-a" class="hotspot" x="1112" y="467" width="90" height="55"
+                                  data-terminal-type="axis" data-terminal-name="AXIS A"></rect>
+                            
+                            
+                            <!-- Highlight overlay -->
+                            <rect id="highlight-overlay" class="highlight-overlay" x="0" y="0" width="0" height="0"></rect> 
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Configuration Panel -->
+                <div id="configPanel" class="config-panel">
+                    <div class="config-header">
+                        <h3 id="panelTitle">Configure Terminal</h3>
+                        <button class="close-btn">&times;</button>
+                    </div>
+                    <div class="config-content">
+                        <!-- Power Configuration -->
+                        <div id="powerConfig" class="config-section">
+                            <div class="config-item">
+                                <label>Voltage</label>
+                                <select>
+                                    <option>12V</option>
+                                    <option selected>24V</option>
+                                    <option>36V</option>
+                                    <option>48V</option>
+                                </select>
+                            </div>
+                            <div class="config-item">
+                                <label>Max Current (A)</label>
+                                <input type="number" value="10" min="1" max="30">
+                            </div>
+                        </div>
+
+                        <!-- Input Configuration -->
+                        <div id="inputConfig" class="config-section">
+                            <div class="config-item">
+                                <label>Enable Input</label>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="config-item">
+                                <label>Function</label>
+                                <select id="input-function">
+                                    <option value="limit">Limit Switch</option>
+                                    <option value="estop">E-Stop</option>
+                                    <option value="probe">Probe</option>
+                                    <option value="door">Door Switch</option>
+                                    <option value="gcode">G-code Trigger</option>
+                                </select>
+                            </div>
+                            <div class="config-item sub-options">
+                                <label>Associated Axis</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="input-axis" value="X" checked> X</label>
+                                    <label><input type="radio" name="input-axis" value="Y"> Y</label>
+                                    <label><input type="radio" name="input-axis" value="Z"> Z</label>
+                                    <label><input type="radio" name="input-axis" value="A"> A</label>
+                                </div>
+                            </div>
+                            <div class="config-item sub-options">
+                                <label>Direction</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="input-direction" value="Min" checked> Min</label>
+                                    <label><input type="radio" name="input-direction" value="Max"> Max</label>
+                                </div>
+                            </div>
+                            <div class="config-item">
+                                <label>Active State</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="input-activeState" value="high" checked> Active High</label>
+                                    <label><input type="radio" name="input-activeState" value="low"> Active Low</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Relay Configuration -->
+                        <div id="relayConfig" class="config-section">
+                            <div class="config-item">
+                                <label>Enable Relay</label>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="config-item">
+                                <label>Function</label>
+                                <select>
+                                    <option>Spindle Control</option>
+                                    <option>Coolant</option>
+                                    <option>Vacuum</option>
+                                    <option>Mist</option>
+                                    <option>Flood</option>
+                                    <option>Custom Output</option>
+                                </select>
+                            </div>
+                            <div class="config-item">
+                                <label>Max Load (A)</label>
+                                <input type="number" value="5" min="1" max="10">
+                            </div>
+                        </div>
+
+                        <!-- Axis Configuration -->
+                        <div id="axisConfig" class="config-section">
+                            
+                            <!-- Sub Navigation Bar -->
+                            <div class="sub-nav">
+                                <button class="sub-tab active" data-sub="axis-main">General</button>
+                                <button class="sub-tab" data-sub="axis-limits">Limits / Homing</button>
+                                <button class="sub-tab" data-sub="axis-motors">Motor Tuning</button>
+                                <button class="sub-tab" data-sub="axis-io">I/O</button>
+                            </div>
+
+                            <!-- Tab 1: General Settings -->
+                            <div id="axis-main" class="sub-content active">
+                                <div class="config-item">
+                                    <label>Enable Axis</label>
+                                    <label class="switch">
+                                        <input type="checkbox" checked name="axis-enable">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-item">
+                                    <label>Select Axis ID</label>
+                                    <div class="axis-selector">
+                                        <label><input type="radio" name="axis" value="X" checked> X</label>
+                                        <label><input type="radio" name="axis" value="Y"> Y</label>
+                                        <label><input type="radio" name="axis" value="Z"> Z</label>
+                                        <label><input type="radio" name="axis" value="A"> A</label>
+                                    </div>
+                                </div>
+                                <div class="config-item">
+                                    <label>Max Speed (mm/min)</label>
+                                    <input type="number" value="2000" min="100" max="10000" id="axis-speed">
+                                </div>
+                                <div class="config-item">
+                                    <label>Acceleration (mm/s²)</label>
+                                    <input type="number" value="200" min="10" max="1000" id="axis-accel">
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Limits & Homing -->
+                            <div id="axis-limits" class="sub-content">
+                                <div class="config-item">
+                                    <label>Enable Hard Limits</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="axis-hard-limits">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-item">
+                                    <label>Enable Soft Limits</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="axis-soft-limits">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-item">
+                                    <label>Max Travel (mm)</label>
+                                    <input type="number" value="300" min="10" max="2000" id="axis-max-travel">
+                                </div>
+                                <div class="config-item">
+                                    <label>Homing Direction</label>
+                                    <select id="axis-home-dir">
+                                        <option value="min">Min (Negative)</option>
+                                        <option value="max">Max (Positive)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Motor Tuning -->
+                            <div id="axis-motors" class="sub-content">
+                                <div class="config-item">
+                                    <label>Steps per mm</label>
+                                    <input type="number" value="200" min="1" max="5000" id="axis-steps">
+                                </div>
+                                <div class="config-item">
+                                    <label>Invert Motor Direction</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="axis-invert">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+
+                            <!-- Tab 4: I/O -->
+                            <div id="axis-io" class="sub-content">
+                                <div class="config-item">
+                                    <label>Enable I/O</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="axis-invert">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <select id="axis-iotype">
+                                        <option value="1">Limit Switch</option>
+                                        <option value="2">E-Stop</option>
+                                        <option value="4">Probe</option>
+                                        <option value="8">Custom</option>
+                                    </select>
+                                </div>
+
+                                <div class="config-item">
+                                    <label>Enable ADC</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="axis-invert">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <select id="axis-adctype">
+                                        <option value="1">Temperature</option>
+                                        <option value="2">Voltage</option>
+                                        <option value="4">Resistance</option>
+                                        <option value="8">Custom</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Output Configuration -->
+                        <div id="outputConfig" class="config-section">
+                            <div class="config-item">
+                                <label>Enable Output</label>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="config-item">
+                                <label>Function</label>
+                                <select>
+                                    <option>PWM Spindle</option>
+                                    <option>Laser Control</option>
+                                    <option>Tool Change</option>
+                                    <option>Indicator Light</option>
+                                    <option>Custom</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="config-footer">
+                        <button class="btn btn-secondary" onclick="resetToDefaults()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                        <button class="save-btn" onclick="saveConfiguration()">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files Tab -->
+            <div class="tab-content" id="files">
+                <div class="file-browser">
+                    <div class="file-toolbar">
+                        <input type="text" class="file-path" id="file-path" value="/" readonly>
+                        <button class="btn" onclick="uploadFile()">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshFiles()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div class="file-list-container">
+                        <div class="file-list" id="file-list">
+                            <div class="console-line receive">No files loaded yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ace Editor Modal -->
+    <div class="editor-modal" id="editor-modal">
+        <div class="editor-container">
+            <div class="editor-toolbar">
+                <div class="editor-filename" id="editor-filename">file.gcode</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="closeEditor()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button class="btn" onclick="saveFile()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+            </div>
+            <div class="editor-wrapper">
+                <div id="ace-editor"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-language_tools.js"></script>
+
+    <script>
+        // Configuration Storage
+        let config = {
+            pins: {},
+            settings: {}
+        };
+
+        // Ace Editor Setup
+        let aceEditor = null;
+        let currentFile = null;
+
+        function initAceEditor() {
+            aceEditor = ace.edit("ace-editor");
+            aceEditor.setTheme("ace/theme/monokai");
+            aceEditor.session.setMode("ace/mode/gcode");
+            aceEditor.setOptions({
+                fontSize: "14px",
+                showPrintMargin: false,
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true
+            });
+        }
+
+        // Load config
+        function loadConfig() {
+            const saved = localStorage.getItem('cnc-config');
+            if (saved) {
+                config = JSON.parse(saved);
+            }
+        }
+
+        // Save config
+        function saveConfig() {
+            localStorage.setItem('cnc-config', JSON.stringify(config));
+        }
+
+        // Tab Navigation
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(targetTab).classList.add('active');
+            });
+        });
+
+        // Sub-Tab Navigation
+        document.querySelectorAll('.sub-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const parentSection = tab.closest('.config-section');
+                parentSection.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                parentSection.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+                const targetId = tab.dataset.sub;
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+
+        // FluidNC communication
+        let currentStep = 1;
+        let currentFilePath = null;
+        const fluid = {
+            pageId: "",
+            websocketPort: (window.location.port || (window.location.protocol === "https:" ? "443" : "80")),
+            websocketHost: window.location.hostname,
+            ws: null,
+            reconnectTimer: null,
+            currentPath: "/"
+        };
+
+        function setConnectionState(connected, stateText = "") {
+            const statusEl = document.getElementById("connection-status");
+            const hostEl = document.getElementById("connection-host");
+            const dotEl = document.querySelector(".status-dot");
+            statusEl.textContent = connected ? `Connected${stateText ? ` (${stateText})` : ""}` : "Disconnected";
+            hostEl.textContent = window.location.host || window.location.hostname;
+            dotEl.style.background = connected ? "var(--success)" : "var(--danger)";
+        }
+
+        function logConsole(message, type = "receive") {
+            const outputEl = document.getElementById("console-output");
+            const line = document.createElement("div");
+            line.className = `console-line ${type}`;
+            line.textContent = type === "send" ? `> ${message}` : message;
+            outputEl.appendChild(line);
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
+
+        function parseFirmwareInfo(text) {
+            const parts = text.split("#").map(p => p.trim());
+            for (const part of parts) {
+                const tokens = part.split(":");
+                const key = (tokens[0] || "").trim().toLowerCase();
+                if (key === "webcommunication") {
+                    fluid.websocketPort = (tokens[2] || fluid.websocketPort).trim();
+                    fluid.websocketHost = (tokens[3] || window.location.hostname).trim();
+                }
+            }
+        }
+
+        function websocketUrl() {
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const host = fluid.websocketHost || window.location.hostname;
+            const defaultPort = protocol === "wss" ? "443" : "80";
+            if (fluid.websocketPort && fluid.websocketPort !== defaultPort) {
+                return `${protocol}://${host}:${fluid.websocketPort}`;
+            }
+            return `${protocol}://${host}`;
+        }
+
+        function updateAxisDisplay(x, y, z) {
+            if (Number.isFinite(x)) document.getElementById("pos-x").textContent = `${x.toFixed(3)} mm`;
+            if (Number.isFinite(y)) document.getElementById("pos-y").textContent = `${y.toFixed(3)} mm`;
+            if (Number.isFinite(z)) document.getElementById("pos-z").textContent = `${z.toFixed(3)} mm`;
+        }
+
+        function parseStatusMessage(line) {
+            if (!line.startsWith("<") || !line.endsWith(">")) return;
+            const inner = line.slice(1, -1);
+            const fields = inner.split("|");
+            if (fields.length > 0) setConnectionState(true, fields[0]);
+
+            for (const field of fields) {
+                if (field.startsWith("MPos:") || field.startsWith("WPos:")) {
+                    const values = field.substring(5).split(",");
+                    updateAxisDisplay(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]));
+                }
+            }
+        }
+
+        function startSocket() {
+            if (fluid.ws) fluid.ws.close();
+            fluid.ws = new WebSocket(websocketUrl(), ["arduino"]);
+
+            fluid.ws.onopen = () => {
+                setConnectionState(true);
+                sendFluidCommand("?", true);
+            };
+            fluid.ws.onclose = () => {
+                setConnectionState(false);
+                fluid.reconnectTimer = setTimeout(startSocket, 3000);
+            };
+            fluid.ws.onerror = () => {
+                setConnectionState(false);
+            };
+            fluid.ws.onmessage = (event) => {
+                if (event.data instanceof ArrayBuffer) return;
+                const msg = String(event.data);
+                const parts = msg.split(":");
+                if (parts[0] === "currentID" || parts[0] === "CURRENT_ID") {
+                    fluid.pageId = parts[1] || "";
+                    return;
+                }
+                if (parts[0] === "ERROR") {
+                    logConsole(parts.slice(2).join(":") || "Web error", "error");
+                    return;
+                }
+                parseStatusMessage(msg);
+                if (!msg.startsWith("PING:")) {
+                    logConsole(msg, msg.toLowerCase().includes("error") ? "error" : "receive");
+                }
+            };
+        }
+
+        async function sendFluidCommand(command, silent = false) {
+            if (!command) return "";
+            logConsole(command, "send");
+            const endpoint = silent ? "/command_silent" : "/command";
+            let url = `${endpoint}?commandText=${encodeURIComponent(command)}`;
+            if (fluid.pageId) url += `&PAGEID=${encodeURIComponent(fluid.pageId)}`;
+            const response = await fetch(url, { method: "GET" });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+            const text = await response.text();
+            if (text && (command.startsWith("[ESP") || command.startsWith("$/"))) {
+                text.split(/\r?\n/).filter(Boolean).forEach(line => logConsole(line, "receive"));
+            }
+            return text;
+        }
+
+        async function initFluidNC() {
+            setConnectionState(false);
+            try {
+                const infoResponse = await fetch("/command?commandText=" + encodeURIComponent("[ESP800]"));
+                if (infoResponse.ok) {
+                    const text = await infoResponse.text();
+                    parseFirmwareInfo(text);
+                    logConsole("FluidNC info loaded", "receive");
+                }
+            } catch (err) {
+                logConsole(`Init failed: ${err.message}`, "error");
+            }
+            startSocket();
+        }
+
+        function jogDeltaFromDir(dir, step) {
+            const s = Number(step);
+            switch (dir) {
+                case "x+": return `X${s}`;
+                case "x-": return `X-${s}`;
+                case "y+": return `Y${s}`;
+                case "y-": return `Y-${s}`;
+                case "xy+": return `X${s} Y${s}`;
+                case "xy-": return `X-${s} Y${s}`;
+                case "xy--": return `X-${s} Y-${s}`;
+                case "x+y-": return `X${s} Y-${s}`;
+                default: return "";
+            }
+        }
+
+        document.querySelectorAll(".jog-btn[data-dir]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const move = jogDeltaFromDir(btn.dataset.dir, currentStep);
+                if (!move) return;
+                try {
+                    await sendFluidCommand(`$J=G91 G21 F1000 ${move}`, true);
+                } catch (err) {
+                    logConsole(`Jog failed: ${err.message}`, "error");
+                }
+            });
+        });
+
+        document.querySelectorAll(".axis-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const axis = btn.dataset.axis.toUpperCase();
+                const dir = btn.dataset.dir === "-" ? -1 : 1;
+                const move = `${axis}${dir < 0 ? "-" : ""}${currentStep}`;
+                try {
+                    await sendFluidCommand(`$J=G91 G21 F600 ${move}`, true);
+                } catch (err) {
+                    logConsole(`Jog failed: ${err.message}`, "error");
+                }
+            });
+        });
+
+        document.querySelectorAll(".step-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".step-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                currentStep = parseFloat(btn.dataset.step);
+            });
+        });
+
+        async function sendCommand() {
+            const input = document.getElementById("console-input");
+            const command = input.value.trim();
+            if (!command) return;
+            try {
+                await sendFluidCommand(command);
+                input.value = "";
+            } catch (err) {
+                logConsole(`Command failed: ${err.message}`, "error");
+            }
+        }
+
+        function clearConsole() {
+            document.getElementById("console-output").innerHTML = "";
+        }
+
+        document.getElementById("console-input").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendCommand();
+        });
+
+        async function runMacro(macroId) {
+            const macroCommands = {
+                "probe-z": ["G91", "G38.2 Z-20 F100", "G90"],
+                "park": ["G90", "G0 X0 Y0", "G0 Z10"],
+                "spindle-warmup": ["M3 S5000", "G4 P5", "M5"],
+                "tool-change": ["M5", "G90", "G0 X0 Y0 Z10", "M0"]
+            };
+            const commands = macroCommands[macroId] || [];
+            for (const cmd of commands) {
+                try {
+                    await sendFluidCommand(cmd, true);
+                } catch (err) {
+                    logConsole(`Macro failed: ${err.message}`, "error");
+                    break;
+                }
+            }
+        }
+
+        // Pin Configuration System
+        const configPanel = document.getElementById('configPanel');
+        const panelTitle = document.getElementById('panelTitle');
+        const closeBtn = configPanel.querySelector('.close-btn');
+        const pcbHotspots = document.querySelector('.pcb-hotspots');
+        const highlightOverlay = document.getElementById('highlight-overlay');
+        const pcbImage = document.getElementById('pcb-image');
+
+        const configSections = {
+            power: document.getElementById('powerConfig'),
+            input: document.getElementById('inputConfig'),
+            relay: document.getElementById('relayConfig'),
+            axis: document.getElementById('axisConfig'),
+            output: document.getElementById('outputConfig')
+        };
+
+        let currentActiveHotspot = null;
+
+        function showConfigSection(type) {
+            Object.values(configSections).forEach(section => {
+                if (section) section.classList.remove('active');
+            });
+            if (configSections[type]) {
+                configSections[type].classList.add('active');
+            }
+        }
+
+        function loadConfiguration(terminalId) {
+            const activeSection = document.querySelector('.config-section.active');
+            if (!activeSection) return;
+
+            const savedData = config.pins[terminalId] || {};
+
+            activeSection.querySelectorAll('input, select').forEach(input => {
+                let key;
+                if (input.type === 'checkbox') {
+                    key = input.name || 'enabled';
+                } else if (input.type === 'radio') {
+                    key = input.name;
+                } else {
+                    key = input.id || input.name;
+                }
+
+                if (savedData.hasOwnProperty(key)) {
+                    if (input.type === 'checkbox') {
+                        input.checked = savedData[key];
+                    } else if (input.type === 'radio') {
+                        input.checked = (input.value === savedData[key]);
+                    } else {
+                        input.value = savedData[key];
+                    }
+                } else {
+                    if (input.type === 'checkbox') {
+                        input.checked = input.defaultChecked;
+                    } else if (input.type === 'radio') {
+                        input.checked = input.defaultChecked;
+                    } else if (input.tagName === 'SELECT') {
+                        Array.from(input.options).forEach(opt => {
+                            opt.selected = opt.defaultSelected;
+                        });
+                    } else {
+                        input.value = input.defaultValue;
+                    }
+                }
+            });
+        }
+
+        function getHotspotCoords(hotspotElement) {
+            const pcbRect = pcbImage.getBoundingClientRect();
+            const svgRect = pcbHotspots.getBoundingClientRect();
+            
+            const x = parseFloat(hotspotElement.getAttribute('x'));
+            const y = parseFloat(hotspotElement.getAttribute('y'));
+            const width = parseFloat(hotspotElement.getAttribute('width'));
+            const height = parseFloat(hotspotElement.getAttribute('height'));
+
+            const viewBox = pcbHotspots.getAttribute('viewBox').split(' ');
+            const svgWidth = parseFloat(viewBox[2]);
+            const svgHeight = parseFloat(viewBox[3]);
+            
+            const scaleX = svgRect.width / svgWidth;
+            const scaleY = svgRect.height / svgHeight;
+
+            const xViewport = pcbRect.left + (x * scaleX);
+            const yViewport = pcbRect.top + (y * scaleY);
+            const widthViewport = width * scaleX;
+            const heightViewport = height * scaleY;
+
+            return { 
+                x: xViewport, 
+                y: yViewport, 
+                width: widthViewport, 
+                height: heightViewport,
+                right: xViewport + widthViewport,
+                bottom: yViewport + heightViewport,
+                centerX: xViewport + widthViewport / 2,
+                centerY: yViewport + heightViewport / 2
+            };
+        }
+
+        function positionConfigPanel(hotspotCoords) {
+            const panelRect = configPanel.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const padding = 20;
+
+            let panelLeft, panelTop;
+
+            panelLeft = hotspotCoords.right + padding;
+            
+            if (panelLeft + panelRect.width > windowWidth - padding) {
+                panelLeft = hotspotCoords.x - panelRect.width - padding;
+            }
+            
+            if (panelLeft < padding || panelLeft + panelRect.width > windowWidth - padding) {
+                panelLeft = (windowWidth - panelRect.width) / 2;
+            }
+
+            panelTop = hotspotCoords.y;
+            
+            if (panelTop + panelRect.height > windowHeight - padding) {
+                panelTop = windowHeight - panelRect.height - padding;
+            }
+            
+            if (panelTop < padding) {
+                panelTop = padding;
+            }
+
+            configPanel.style.left = `${panelLeft}px`;
+            configPanel.style.top = `${panelTop}px`;
+        }
+
+        function updateHighlight(hotspot) {
+            const coords = getHotspotCoords(hotspot);
+            const pcbRect = pcbImage.getBoundingClientRect();
+            const svgRect = pcbHotspots.getBoundingClientRect();
+            
+            const viewBox = pcbHotspots.getAttribute('viewBox').split(' ');
+            const svgWidth = parseFloat(viewBox[2]);
+            const svgHeight = parseFloat(viewBox[3]);
+            
+            const scaleX = svgRect.width / svgWidth;
+            const scaleY = svgRect.height / svgHeight;
+            
+            const x = parseFloat(hotspot.getAttribute('x'));
+            const y = parseFloat(hotspot.getAttribute('y'));
+            const width = parseFloat(hotspot.getAttribute('width'));
+            const height = parseFloat(hotspot.getAttribute('height'));
+            
+            highlightOverlay.setAttribute('x', x);
+            highlightOverlay.setAttribute('y', y);
+            highlightOverlay.setAttribute('width', width);
+            highlightOverlay.setAttribute('height', height);
+            highlightOverlay.classList.add('visible');
+        }
+
+        pcbHotspots.addEventListener('click', (event) => {
+            const clickedHotspot = event.target.closest('.hotspot');
+
+            if (clickedHotspot) {
+                event.stopPropagation();
+                
+                if (currentActiveHotspot && currentActiveHotspot !== clickedHotspot) {
+                    currentActiveHotspot.classList.remove('active');
+                }
+                
+                clickedHotspot.classList.add('active');
+                currentActiveHotspot = clickedHotspot;
+
+                updateHighlight(clickedHotspot);
+
+                const terminalName = clickedHotspot.dataset.terminalName;
+                const terminalType = clickedHotspot.dataset.terminalType;
+
+                panelTitle.textContent = `Configure: ${terminalName}`;
+                showConfigSection(terminalType);
+
+                loadConfiguration(clickedHotspot.id);
+
+                const coords = getHotspotCoords(clickedHotspot);
+                positionConfigPanel(coords);
+                
+                setTimeout(() => {
+                    configPanel.classList.add('open');
+                }, 10);
+            }
+        });
+
+        pcbHotspots.addEventListener('mousemove', (event) => {
+            const hoveredHotspot = event.target.closest('.hotspot');
+            if (hoveredHotspot && hoveredHotspot !== currentActiveHotspot) {
+                updateHighlight(hoveredHotspot);
+            } else if (!hoveredHotspot && !currentActiveHotspot) {
+                highlightOverlay.classList.remove('visible');
+            }
+        });
+
+        pcbHotspots.addEventListener('mouseleave', () => {
+            if (!currentActiveHotspot) {
+                highlightOverlay.classList.remove('visible');
+            }
+        });
+
+        closeBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            hidePanel();
+        });
+
+        function hidePanel() {
+            configPanel.classList.remove('open');
+
+            if (currentActiveHotspot) {
+                currentActiveHotspot.classList.remove('active');
+                currentActiveHotspot = null;
+            }
+            highlightOverlay.classList.remove('visible');
+        }
+
+        document.addEventListener('click', (event) => {
+            if (configPanel.classList.contains('open')) {
+                const isClickInsidePanel = configPanel.contains(event.target);
+                const isClickOnHotspot = event.target.closest('.hotspot');
+                
+                if (!isClickInsidePanel && !isClickOnHotspot) {
+                    hidePanel();
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (currentActiveHotspot) {
+                updateHighlight(currentActiveHotspot);
+                if (configPanel.classList.contains('open')) {
+                    const coords = getHotspotCoords(currentActiveHotspot);
+                    positionConfigPanel(coords);
+                }
+            }
+        });
+
+        function saveConfiguration() {
+            const terminalId = currentActiveHotspot?.id;
+            if (terminalId) {
+                const activeSection = document.querySelector('.config-section.active');
+                const formData = {};
+                
+                activeSection.querySelectorAll('input, select').forEach(input => {
+                    if (input.type === 'checkbox') {
+                        formData[input.name || 'enabled'] = input.checked;
+                    } else if (input.type === 'radio') {
+                        if (input.checked) {
+                            formData[input.name] = input.value;
+                        }
+                    } else {
+                        formData[input.id || input.name] = input.value;
+                    }
+                });
+                
+                config.pins[terminalId] = formData;
+                saveConfig();
+                logConsole(`Configuration saved for ${currentActiveHotspot.dataset.terminalName}`, 'receive');
+                
+                const saveBtn = document.querySelector('.save-btn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                setTimeout(() => {
+                    saveBtn.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+
+        function resetToDefaults() {
+            const terminalId = currentActiveHotspot?.id;
+            if (terminalId && confirm('Reset this terminal to default settings?')) {
+                delete config.pins[terminalId];
+                saveConfig();
+                logConsole(`Reset ${currentActiveHotspot.dataset.terminalName} to defaults`, 'receive');
+                hidePanel();
+            }
+        }
+
+                function editFile(filename) {
+            currentFile = filename;
+            currentFilePath = `${fluid.currentPath}${filename}`.replace("//", "/");
+            document.getElementById("editor-filename").textContent = currentFilePath;
+
+            if (!aceEditor) {
+                initAceEditor();
+            }
+
+            fetch(currentFilePath)
+                .then(r => r.text())
+                .then(content => {
+                    aceEditor.setValue(content, -1);
+                    document.getElementById("editor-modal").classList.add("active");
+                })
+                .catch(err => logConsole(`Open file failed: ${err.message}`, "error"));
+        }
+
+        function closeEditor() {
+            document.getElementById("editor-modal").classList.remove("active");
+            currentFile = null;
+            currentFilePath = null;
+        }
+
+        async function saveFile() {
+            if (!currentFilePath || !aceEditor) return;
+            const content = aceEditor.getValue();
+            const blob = new Blob([content], { type: "text/plain" });
+            const formData = new FormData();
+            formData.append(`${currentFilePath}S`, String(blob.size));
+            formData.append("myfiles[]", blob, currentFilePath);
+            try {
+                const response = await fetch("/files", { method: "POST", body: formData });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                logConsole(`File saved: ${currentFilePath}`, "receive");
+                closeEditor();
+                await refreshFiles();
+            } catch (err) {
+                logConsole(`Save failed: ${err.message}`, "error");
+            }
+        }
+
+        async function runFile(filename) {
+            const fullPath = `${fluid.currentPath}${filename}`.replace("//", "/");
+            try {
+                await sendFluidCommand(`[ESP700]${fullPath}`);
+            } catch (err) {
+                logConsole(`Run failed: ${err.message}`, "error");
+            }
+        }
+
+        async function uploadFile() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".gcode,.nc,.txt";
+            input.multiple = true;
+            input.onchange = async (e) => {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+                const formData = new FormData();
+                for (const file of files) {
+                    const targetPath = `${fluid.currentPath === "/" ? "/" : fluid.currentPath}${file.name}`;
+                    formData.append(`${targetPath}S`, String(file.size));
+                    formData.append("myfiles[]", file, targetPath);
+                }
+                try {
+                    const response = await fetch("/files", { method: "POST", body: formData });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    logConsole(`Uploaded ${files.length} file(s)`, "receive");
+                    await refreshFiles();
+                } catch (err) {
+                    logConsole(`Upload failed: ${err.message}`, "error");
+                }
+            };
+            input.click();
+        }
+
+        function formatBytes(bytes) {
+            const value = Number(bytes);
+            if (!Number.isFinite(value) || value < 0) return "dir";
+            if (value < 1024) return `${value} B`;
+            if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+            return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        async function deleteEntry(filename, isDir) {
+            if (!confirm(`Delete ${isDir ? "directory" : "file"} '${filename}'?`)) return;
+            const action = isDir ? "deletedir" : "delete";
+            const url = `/files?action=${action}&filename=${encodeURIComponent(filename)}&path=${encodeURIComponent(fluid.currentPath)}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                await refreshFiles();
+            } catch (err) {
+                logConsole(`Delete failed: ${err.message}`, "error");
+            }
+        }
+
+        function renderFileList(items) {
+            const listEl = document.getElementById("file-list");
+            listEl.innerHTML = "";
+
+            if (fluid.currentPath !== "/") {
+                const up = document.createElement("div");
+                up.className = "file-item";
+                up.innerHTML = `
+                    <div class="file-info">
+                        <i class="fas fa-level-up-alt file-icon" style="color: var(--text-secondary);"></i>
+                        <div class="file-details"><div class="file-name">..</div><div class="file-meta">Parent directory</div></div>
+                    </div>`;
+                up.onclick = () => {
+                    const parts = fluid.currentPath.split("/").filter(Boolean);
+                    parts.pop();
+                    fluid.currentPath = parts.length ? `/${parts.join("/")}/` : "/";
+                    refreshFiles();
+                };
+                listEl.appendChild(up);
+            }
+
+            if (!items.length) {
+                listEl.innerHTML = `<div class="console-line receive">No files in ${fluid.currentPath}</div>`;
+                return;
+            }
+
+            const sorted = [...items].sort((a, b) => {
+                if (a.size === -1 && b.size !== -1) return -1;
+                if (a.size !== -1 && b.size === -1) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            for (const file of sorted) {
+                const isDir = file.size === -1;
+                const row = document.createElement("div");
+                row.className = "file-item";
+                row.innerHTML = `
+                    <div class="file-info">
+                        <i class="fas ${isDir ? "fa-folder" : "fa-file-code"} file-icon" style="color: ${isDir ? "var(--warning)" : "var(--accent-primary)"};"></i>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-meta">${isDir ? "Directory" : formatBytes(file.size)}</div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        ${isDir ? "" : `<button class="btn btn-secondary action-edit"><i class="fas fa-edit"></i> Edit</button>`}
+                        ${isDir ? "" : `<button class="btn btn-success action-run"><i class="fas fa-play"></i> Run</button>`}
+                        <button class="btn btn-danger action-del"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+
+                row.onclick = () => {
+                    if (isDir) {
+                        fluid.currentPath = `${fluid.currentPath}${file.name}/`.replace("//", "/");
+                        refreshFiles();
+                    } else {
+                        openFile(file.name);
+                    }
+                };
+
+                row.querySelector(".action-del").addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    deleteEntry(file.name, isDir);
+                });
+
+                if (!isDir) {
+                    row.querySelector(".action-edit").addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        editFile(file.name);
+                    });
+                    row.querySelector(".action-run").addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        runFile(file.name);
+                    });
+                }
+                listEl.appendChild(row);
+            }
+        }
+
+        async function refreshFiles() {
+            const url = `/files?action=list&filename=all&path=${encodeURIComponent(fluid.currentPath)}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const json = await response.json();
+                document.getElementById("file-path").value = fluid.currentPath;
+                renderFileList(json.files || []);
+            } catch (err) {
+                logConsole(`File list failed: ${err.message}`, "error");
+            }
+        }
+
+        function openFile(filename) {
+            const fullPath = `${fluid.currentPath === "/" ? "/" : fluid.currentPath}${filename}`;
+            window.open(fullPath, "_blank");
+        }
+// --- Draggable Logic Implementation ---
+        function makeDraggable(element) {
+            const header = element.querySelector('.config-header');
+            let isDragging = false;
+            let startX, startY;
+
+            header.addEventListener('mousedown', (e) => {
+                // Ignore clicks on close button
+                if (e.target.closest('.close-btn')) return;
+
+                isDragging = true;
+                // Calculate cursor offset from element's top-left corner
+                startX = e.clientX - element.offsetLeft;
+                startY = e.clientY - element.offsetTop;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                // Prevent selecting text while dragging
+                e.preventDefault();
+
+                // Calculate new position
+                const newLeft = e.clientX - startX;
+                const newTop = e.clientY - startY;
+
+                // Basic bounds checking to keep header visible
+                const minLeft = -element.offsetWidth + 50;
+                const maxLeft = window.innerWidth - 50;
+                const minTop = 0;
+                const maxTop = window.innerHeight - 50;
+
+                if (newLeft > minLeft && newLeft < maxLeft) {
+                    element.style.left = `${newLeft}px`;
+                }
+                if (newTop > minTop && newTop < maxTop) {
+                    element.style.top = `${newTop}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        // Initialize Draggable Panel
+        makeDraggable(document.getElementById('configPanel'));
+
+        // Initialize
+        loadConfig();
+
+        window.downloadConfig = function() {
+            const dataStr = JSON.stringify(config, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', 'cnc-config.json');
+            linkElement.click();
+            logConsole('Configuration downloaded', 'receive');
+        };
+
+        window.uploadConfig = function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        config = JSON.parse(event.target.result);
+                        saveConfig();
+                        logConsole('Configuration loaded successfully', 'receive');
+                    } catch (err) {
+                        logConsole('Error loading configuration file', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        };
+
+        window.addEventListener('load', () => {
+            document.getElementById("home-all-btn").addEventListener("click", async () => {
+                try {
+                    await sendFluidCommand("$H");
+                } catch (err) {
+                    logConsole(`Home failed: ${err.message}`, "error");
+                }
+            });
+
+            document.getElementById("estop-btn").addEventListener("click", async () => {
+                if (!confirm("Send soft reset (E-Stop)?")) return;
+                try {
+                    await sendFluidCommand("\x18", true);
+                } catch (err) {
+                    logConsole(`E-Stop failed: ${err.message}`, "error");
+                }
+            });
+
+            const toolbar = document.querySelector('.file-toolbar');
+            if (toolbar) {
+                const configBtns = document.createElement('div');
+                configBtns.style.cssText = 'display: flex; gap: 0.5rem; margin-left: auto;';
+                configBtns.innerHTML = `
+                    <button class="btn btn-secondary" onclick="downloadConfig()">
+                        <i class="fas fa-download"></i> Export Config
+                    </button>
+                    <button class="btn btn-secondary" onclick="uploadConfig()">
+                        <i class="fas fa-upload"></i> Import Config
+                    </button>
+                `;
+                toolbar.appendChild(configBtns);
+            }
+
+            initFluidNC();
+            refreshFiles();
+        });
+    </script>
+</body>
+</html>
+
