@@ -137,6 +137,37 @@ namespace WebUI {
             return Error::Ok;
         }
 
+        // Read user_outputs analog0_pin and analog1_pin as millivolts and return volts.
+        static Error showUserOutputVoltages(const char* parameter, AuthenticationLevel auth_level, Channel& out) {  // ESP430
+            float v0 = 0.0f;
+            float v1 = 0.0f;
+
+            auto& pin0 = config->_userOutputs->_analogOutput[0];
+            auto& pin1 = config->_userOutputs->_analogOutput[1];
+
+            if (!pin0.undefined()) {
+                v0 = pin0.readAnalogMV() / 1000.0f;
+            }
+            if (!pin1.undefined()) {
+                v1 = pin1.readAnalogMV() / 1000.0f;
+            }
+
+            if (paramIsJSON(parameter)) {
+                JSONencoder j(&out);
+                j.begin();
+                j.member("cmd", "430");
+                j.member("status", "ok");
+                j.member("analog0_v", v0);
+                j.member("analog1_v", v1);
+                j.end();
+                return Error::Ok;
+            }
+
+            log_stream(out, "Analog0: " << v0 << "V");
+            log_stream(out, "Analog1: " << v1 << "V");
+            return Error::Ok;
+        }
+
         static Error setWebSetting(const char* parameter, AuthenticationLevel auth_level, Channel& out) {  // ESP401
             // The string is of the form "P=name T=type V=value
             // We do not need the "T=" (type) parameter because the
@@ -249,6 +280,7 @@ namespace WebUI {
             // WU - need user or admin password to set
             // WA - need admin password to set
             new WebCommand(NULL, WEBCMD, WU, "ESP420", "System/Stats", showSysStats, anyState);
+            new WebCommand(NULL, WEBCMD, WU, "ESP430", "UserOutputs/Voltages", showUserOutputVoltages, anyState);
             new WebCommand("RESTART", WEBCMD, WA, "ESP444", "System/Control", setSystemMode);
 
             //      new WebCommand("ON|OFF", WEBCMD, WA, "ESP115", "Radio/State", setRadioState);

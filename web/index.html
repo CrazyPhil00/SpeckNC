@@ -357,48 +357,168 @@
             grid-row: 1 / 3;
         }
 
-        .info-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+        .status-widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.75rem;
+            align-content: start;
+            overflow-y: auto;
+            padding-right: 0.25rem;
             flex: 1;
         }
 
-        .info-card {
-            background: var(--bg-tertiary);
+        .status-widget-card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.15));
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 1rem;
+            border-radius: 8px;
+            padding: 0.8rem;
+            min-height: 96px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
         }
 
-        .info-row {
+        .status-widget-label {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .status-widget-source {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 0.72rem;
+            margin-top: 0.2rem;
+        }
+
+        .status-widget-value {
+            font-size: 1.25rem;
+            font-weight: 650;
+            color: var(--text-primary);
+            line-height: 1.1;
+            word-break: break-word;
+        }
+
+        .status-tone-default { color: var(--text-primary); }
+        .status-tone-info { color: var(--info); }
+        .status-tone-success { color: var(--success); }
+        .status-tone-warning { color: var(--warning); }
+        .status-tone-danger { color: var(--danger); }
+
+        .status-editor-container {
+            width: 100%;
+            max-width: 980px;
+            height: 86vh;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .status-editor-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            min-height: 0;
+        }
+
+        .status-widget-list {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            overflow-y: auto;
+        }
+
+        .status-widget-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border-color);
+            gap: 0.5rem;
+            padding: 0.6rem;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            margin-bottom: 0.45rem;
+            cursor: pointer;
         }
 
-        .info-row:last-child {
-            border-bottom: none;
+        .status-widget-item.active {
+            border-color: var(--accent-primary);
+            background: rgba(70, 130, 180, 0.12);
         }
 
-        .info-label {
-            color: var(--text-secondary);
+        .status-widget-item-main {
+            min-width: 0;
+        }
+
+        .status-widget-item-label {
             font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .info-value {
-            font-weight: 600;
-            font-size: 1rem;
+        .status-widget-item-src {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
         }
 
-        .temp-value {
-            color: var(--warning);
+        .status-widget-actions {
+            display: flex;
+            gap: 0.35rem;
         }
 
-        .current-value {
-            color: var(--info);
+        .status-icon-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-icon-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .status-widget-form {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .status-widget-form .config-item {
+            margin-bottom: 1rem;
+        }
+
+        .status-widget-form input[type="text"],
+        .status-widget-form input[type="number"],
+        .status-widget-form select {
+            width: 100%;
+            padding: 0.65rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+        }
+
+        .status-widget-empty {
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 1rem;
         }
 
         /* Button Styles */
@@ -1042,6 +1162,21 @@
             height: 100%;
         }
 
+        #fallback-editor {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            outline: none;
+            padding: 1rem;
+            resize: none;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            display: none;
+        }
+
         /* Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -1064,6 +1199,12 @@
         @media (max-width: 1400px) {
             .dashboard-grid {
                 grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .status-editor-body {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -1210,54 +1351,11 @@
                     <div class="panel info-container">
                         <div class="panel-header">
                             <span><i class="fas fa-info-circle"></i> System Info</span>
+                            <button class="btn btn-secondary" id="open-status-editor" style="padding: 0.45rem 0.8rem;">
+                                <i class="fas fa-sliders-h"></i> Customize
+                            </button>
                         </div>
-                        
-                        <div class="info-grid">
-                            <div class="info-card">
-                                <div class="info-row">
-                                    <span class="info-label">X Position</span>
-                                    <span class="info-value" id="pos-x">0.000 mm</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Y Position</span>
-                                    <span class="info-value" id="pos-y">0.000 mm</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Z Position</span>
-                                    <span class="info-value" id="pos-z">0.000 mm</span>
-                                </div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-row">
-                                    <span class="info-label">X Temp</span>
-                                    <span class="info-value temp-value" id="temp-x">42°C</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Y Temp</span>
-                                    <span class="info-value temp-value" id="temp-y">38°C</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Z Temp</span>
-                                    <span class="info-value temp-value" id="temp-z">35°C</span>
-                                </div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-row">
-                                    <span class="info-label">X Current</span>
-                                    <span class="info-value current-value" id="current-x">1.2 A</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Y Current</span>
-                                    <span class="info-value current-value" id="current-y">1.1 A</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Z Current</span>
-                                    <span class="info-value current-value" id="current-z">0.8 A</span>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="status-widget-grid" id="status-widget-grid"></div>
                     </div>
                 </div>
             </div>
@@ -1595,6 +1693,75 @@
             </div>
             <div class="editor-wrapper">
                 <div id="ace-editor"></div>
+                <textarea id="fallback-editor" spellcheck="false"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="editor-modal" id="status-editor-modal">
+        <div class="status-editor-container">
+            <div class="editor-toolbar">
+                <div class="editor-filename">Customize Status Widgets</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" id="close-status-editor">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-editor-body">
+                <div class="status-widget-list" id="status-widget-list"></div>
+                <div class="status-widget-form">
+                    <div class="config-item">
+                        <label for="status-widget-label">Widget Label</label>
+                        <input type="text" id="status-widget-label" maxlength="40">
+                    </div>
+                    <div class="config-item">
+                        <label for="status-widget-source">Data Source</label>
+                        <select id="status-widget-source"></select>
+                    </div>
+                    <div class="config-item">
+                        <label for="status-widget-unit">Unit Suffix</label>
+                        <input type="text" id="status-widget-unit" maxlength="10" placeholder="mm, V, A ...">
+                    </div>
+                    <div class="config-item">
+                        <label for="status-widget-decimals">Decimals (number sources)</label>
+                        <input type="number" id="status-widget-decimals" min="0" max="6" step="1" value="3">
+                    </div>
+                    <div class="config-item">
+                        <label for="status-widget-tone">Color Style</label>
+                        <select id="status-widget-tone">
+                            <option value="default">Default</option>
+                            <option value="info">Info</option>
+                            <option value="success">Success</option>
+                            <option value="warning">Warning</option>
+                            <option value="danger">Danger</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Live Data</label>
+                        <label class="switch">
+                            <input type="checkbox" id="status-widget-live" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="config-item">
+                        <label for="status-widget-manual">Manual Value</label>
+                        <input type="text" id="status-widget-manual" maxlength="30" placeholder="Used when live data is off">
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-footer">
+                <button class="btn btn-secondary" id="status-widget-reset">
+                    <i class="fas fa-undo"></i> Reset Defaults
+                </button>
+                <button class="btn btn-secondary" id="status-widget-add">
+                    <i class="fas fa-plus"></i> Add Widget
+                </button>
+                <button class="save-btn" id="status-widget-save">
+                    <i class="fas fa-save"></i> Save Layout
+                </button>
             </div>
         </div>
     </div>
@@ -1613,50 +1780,400 @@
         // Ace Editor Setup
         let aceEditor = null;
         let currentFile = null;
+        let editorFallbackNotified = false;
 
         function initAceEditor() {
-            aceEditor = ace.edit("ace-editor");
-            aceEditor.setTheme("ace/theme/monokai");
-            aceEditor.session.setMode("ace/mode/gcode");
-            aceEditor.setOptions({
-                fontSize: "14px",
-                showPrintMargin: false,
-                enableBasicAutocompletion: true,
-                enableLiveAutocompletion: true
-            });
+            const aceElement = document.getElementById("ace-editor");
+            const fallbackEditor = document.getElementById("fallback-editor");
+            if (window.ace && typeof window.ace.edit === "function") {
+                fallbackEditor.style.display = "none";
+                aceElement.style.display = "block";
+                aceEditor = ace.edit("ace-editor");
+                aceEditor.setTheme("ace/theme/monokai");
+                aceEditor.session.setMode("ace/mode/gcode");
+                aceEditor.setOptions({
+                    fontSize: "14px",
+                    showPrintMargin: false,
+                    enableBasicAutocompletion: true,
+                    enableLiveAutocompletion: true
+                });
+                return;
+            }
+
+            aceElement.style.display = "none";
+            fallbackEditor.style.display = "block";
+            aceEditor = {
+                setValue(value) {
+                    fallbackEditor.value = typeof value === "string" ? value : String(value || "");
+                },
+                getValue() {
+                    return fallbackEditor.value || "";
+                }
+            };
+            if (!editorFallbackNotified) {
+                editorFallbackNotified = true;
+                logConsole("ACE editor unavailable, using basic text editor", "error");
+            }
         }
 
         // Load config
         function loadConfig() {
-            const saved = localStorage.getItem('cnc-config');
-            if (saved) {
-                config = JSON.parse(saved);
-                if (config && config.pins) {
-                    const legacyToNumericAxis = {
-                        "axis-x": "axis1",
-                        "axis-y": "axis2",
-                        "axis-z": "axis3",
-                        "axis-a": "axis4"
-                    };
-                    let migrated = false;
-                    Object.keys(legacyToNumericAxis).forEach(oldKey => {
-                        const newKey = legacyToNumericAxis[oldKey];
-                        if (config.pins[oldKey] && !config.pins[newKey]) {
-                            config.pins[newKey] = config.pins[oldKey];
-                            delete config.pins[oldKey];
-                            migrated = true;
+            try {
+                const saved = localStorage.getItem('cnc-config');
+                if (saved) {
+                    config = JSON.parse(saved);
+                    if (!config || typeof config !== "object") config = { pins: {}, settings: {} };
+                    if (!config.pins || typeof config.pins !== "object") config.pins = {};
+                    if (!config.settings || typeof config.settings !== "object") config.settings = {};
+                    if (config && config.pins) {
+                        const legacyToNumericAxis = {
+                            "axis-x": "axis1",
+                            "axis-y": "axis2",
+                            "axis-z": "axis3",
+                            "axis-a": "axis4"
+                        };
+                        let migrated = false;
+                        Object.keys(legacyToNumericAxis).forEach(oldKey => {
+                            const newKey = legacyToNumericAxis[oldKey];
+                            if (config.pins[oldKey] && !config.pins[newKey]) {
+                                config.pins[newKey] = config.pins[oldKey];
+                                delete config.pins[oldKey];
+                                migrated = true;
+                            }
+                        });
+                        if (migrated) {
+                            saveConfig();
                         }
-                    });
-                    if (migrated) {
-                        saveConfig();
                     }
+                } else {
+                    config = { pins: {}, settings: {} };
                 }
+            } catch (err) {
+                config = { pins: {}, settings: {} };
+                localStorage.removeItem('cnc-config');
             }
         }
 
         // Save config
         function saveConfig() {
             localStorage.setItem('cnc-config', JSON.stringify(config));
+        }
+
+        const STATUS_SOURCES = [
+            { key: "machine_state", label: "Machine State", type: "string" },
+            { key: "mpos_x", label: "Machine X", type: "number" },
+            { key: "mpos_y", label: "Machine Y", type: "number" },
+            { key: "mpos_z", label: "Machine Z", type: "number" },
+            { key: "wpos_x", label: "Work X", type: "number" },
+            { key: "wpos_y", label: "Work Y", type: "number" },
+            { key: "wpos_z", label: "Work Z", type: "number" },
+            { key: "analog0_v", label: "Analog0 Voltage", type: "number" },
+            { key: "analog1_v", label: "Analog1 Voltage", type: "number" },
+            { key: "feed_rate", label: "Feed Rate", type: "number" },
+            { key: "spindle_rpm", label: "Spindle RPM", type: "number" },
+            { key: "planner_buffer", label: "Planner Buffer", type: "number" },
+            { key: "serial_buffer", label: "Serial Buffer", type: "number" },
+            { key: "line_number", label: "Line Number", type: "number" },
+            { key: "last_update", label: "Last Update", type: "string" }
+        ];
+
+        const STATUS_SOURCE_MAP = STATUS_SOURCES.reduce((acc, src) => {
+            acc[src.key] = src;
+            return acc;
+        }, {});
+
+        const telemetry = {
+            machine_state: "Disconnected",
+            mpos_x: null,
+            mpos_y: null,
+            mpos_z: null,
+            wpos_x: null,
+            wpos_y: null,
+            wpos_z: null,
+            analog0_v: null,
+            analog1_v: null,
+            feed_rate: null,
+            spindle_rpm: null,
+            planner_buffer: null,
+            serial_buffer: null,
+            line_number: null,
+            last_update: "--"
+        };
+
+        const defaultStatusWidgetTemplates = [
+            { label: "Machine State", source: "machine_state", unit: "", decimals: 0, tone: "success", live: true, manualValue: "Idle" },
+            { label: "X Position", source: "mpos_x", unit: "mm", decimals: 3, tone: "default", live: true, manualValue: "0.000" },
+            { label: "Y Position", source: "mpos_y", unit: "mm", decimals: 3, tone: "default", live: true, manualValue: "0.000" },
+            { label: "Z Position", source: "mpos_z", unit: "mm", decimals: 3, tone: "default", live: true, manualValue: "0.000" },
+            { label: "Analog0", source: "analog0_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" },
+            { label: "Analog1", source: "analog1_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" }
+        ];
+
+        let selectedStatusWidgetId = null;
+
+        function generateStatusWidgetId() {
+            return `widget-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        }
+
+        function createDefaultStatusWidgets() {
+            return defaultStatusWidgetTemplates.map(template => ({
+                id: generateStatusWidgetId(),
+                ...template
+            }));
+        }
+
+        function normalizeStatusWidget(widget) {
+            return {
+                id: widget?.id || generateStatusWidgetId(),
+                label: String(widget?.label || "Status Value").slice(0, 40),
+                source: STATUS_SOURCE_MAP[widget?.source] ? widget.source : "machine_state",
+                unit: String(widget?.unit || "").slice(0, 10),
+                decimals: Math.max(0, Math.min(6, Number(widget?.decimals) || 0)),
+                tone: ["default", "info", "success", "warning", "danger"].includes(widget?.tone) ? widget.tone : "default",
+                live: widget?.live !== false,
+                manualValue: String(widget?.manualValue || "").slice(0, 30)
+            };
+        }
+
+        function getStatusWidgets() {
+            if (!config.settings || typeof config.settings !== "object") config.settings = {};
+            if (!Array.isArray(config.settings.statusWidgets) || !config.settings.statusWidgets.length) {
+                config.settings.statusWidgets = createDefaultStatusWidgets();
+                saveConfig();
+            }
+            config.settings.statusWidgets = config.settings.statusWidgets.map(normalizeStatusWidget);
+            if (!config.settings.statusWidgets.length) {
+                config.settings.statusWidgets = createDefaultStatusWidgets();
+                saveConfig();
+            }
+            return config.settings.statusWidgets;
+        }
+
+        function updateTelemetry(values) {
+            Object.assign(telemetry, values);
+            telemetry.last_update = new Date().toLocaleTimeString();
+            renderStatusWidgets();
+        }
+
+        function formatStatusWidgetValue(widget) {
+            const sourceMeta = STATUS_SOURCE_MAP[widget.source] || STATUS_SOURCE_MAP.machine_state;
+            let value = widget.live ? telemetry[widget.source] : widget.manualValue;
+            if (value === null || typeof value === "undefined" || value === "") value = "--";
+
+            if (sourceMeta.type === "number") {
+                const n = Number(value);
+                if (Number.isFinite(n)) value = n.toFixed(widget.decimals);
+            } else {
+                value = String(value);
+            }
+
+            return widget.unit ? `${value} ${widget.unit}` : String(value);
+        }
+
+        function renderStatusWidgets() {
+            const grid = document.getElementById("status-widget-grid");
+            if (!grid) return;
+            try {
+                const widgets = getStatusWidgets();
+                grid.innerHTML = "";
+                widgets.forEach(widget => {
+                    const sourceMeta = STATUS_SOURCE_MAP[widget.source] || STATUS_SOURCE_MAP.machine_state;
+                    const card = document.createElement("div");
+                    card.className = "status-widget-card";
+                    card.innerHTML = `
+                        <div>
+                            <div class="status-widget-label">${widget.label}</div>
+                            <div class="status-widget-source">${sourceMeta.label}</div>
+                        </div>
+                        <div class="status-widget-value status-tone-${widget.tone}">${formatStatusWidgetValue(widget)}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (err) {
+                config.settings = config.settings || {};
+                config.settings.statusWidgets = createDefaultStatusWidgets();
+                saveConfig();
+                grid.innerHTML = "";
+                logConsole(`Status widget reset: ${err.message}`, "error");
+                renderStatusWidgets();
+            }
+        }
+
+        function renderStatusSourceOptions(selectEl, selectedKey) {
+            if (!selectEl) return;
+            selectEl.innerHTML = STATUS_SOURCES.map(src => (
+                `<option value="${src.key}" ${src.key === selectedKey ? "selected" : ""}>${src.label}</option>`
+            )).join("");
+        }
+
+        function renderStatusWidgetList() {
+            const listEl = document.getElementById("status-widget-list");
+            if (!listEl) return;
+            const widgets = getStatusWidgets();
+            if (!widgets.length) {
+                listEl.innerHTML = `<div class="status-widget-empty">No widgets configured.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = "";
+            widgets.forEach((widget, index) => {
+                const row = document.createElement("div");
+                row.className = `status-widget-item${widget.id === selectedStatusWidgetId ? " active" : ""}`;
+                row.innerHTML = `
+                    <div class="status-widget-item-main">
+                        <div class="status-widget-item-label">${widget.label}</div>
+                        <div class="status-widget-item-src">${(STATUS_SOURCE_MAP[widget.source] || STATUS_SOURCE_MAP.machine_state).label}</div>
+                    </div>
+                    <div class="status-widget-actions">
+                        <button class="status-icon-btn move-up" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                        <button class="status-icon-btn move-down" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                        <button class="status-icon-btn delete-widget" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+
+                row.addEventListener("click", () => {
+                    selectedStatusWidgetId = widget.id;
+                    syncStatusWidgetForm();
+                    renderStatusWidgetList();
+                });
+
+                row.querySelector(".move-up").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    moveStatusWidget(index, -1);
+                });
+
+                row.querySelector(".move-down").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    moveStatusWidget(index, 1);
+                });
+
+                row.querySelector(".delete-widget").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    deleteStatusWidget(widget.id);
+                });
+
+                listEl.appendChild(row);
+            });
+        }
+
+        function getSelectedStatusWidget() {
+            return getStatusWidgets().find(widget => widget.id === selectedStatusWidgetId) || null;
+        }
+
+        function syncStatusWidgetForm() {
+            const widget = getSelectedStatusWidget();
+            const labelEl = document.getElementById("status-widget-label");
+            const sourceEl = document.getElementById("status-widget-source");
+            const unitEl = document.getElementById("status-widget-unit");
+            const decimalsEl = document.getElementById("status-widget-decimals");
+            const toneEl = document.getElementById("status-widget-tone");
+            const liveEl = document.getElementById("status-widget-live");
+            const manualEl = document.getElementById("status-widget-manual");
+            if (!labelEl || !sourceEl || !unitEl || !decimalsEl || !toneEl || !liveEl || !manualEl) return;
+
+            if (!widget) {
+                labelEl.value = "";
+                renderStatusSourceOptions(sourceEl, "machine_state");
+                unitEl.value = "";
+                decimalsEl.value = 0;
+                toneEl.value = "default";
+                liveEl.checked = true;
+                manualEl.value = "";
+                manualEl.disabled = true;
+                return;
+            }
+
+            labelEl.value = widget.label;
+            renderStatusSourceOptions(sourceEl, widget.source);
+            unitEl.value = widget.unit;
+            decimalsEl.value = widget.decimals;
+            toneEl.value = widget.tone;
+            liveEl.checked = widget.live;
+            manualEl.value = widget.manualValue;
+            manualEl.disabled = widget.live;
+        }
+
+        function mutateSelectedStatusWidget(mutator) {
+            const widgets = getStatusWidgets();
+            const index = widgets.findIndex(widget => widget.id === selectedStatusWidgetId);
+            if (index < 0) return;
+            const edited = normalizeStatusWidget(mutator({ ...widgets[index] }));
+            widgets[index] = edited;
+            config.settings.statusWidgets = widgets;
+            saveConfig();
+            renderStatusWidgetList();
+            renderStatusWidgets();
+        }
+
+        function moveStatusWidget(index, delta) {
+            const widgets = getStatusWidgets();
+            const target = index + delta;
+            if (target < 0 || target >= widgets.length) return;
+            const moved = widgets[index];
+            widgets.splice(index, 1);
+            widgets.splice(target, 0, moved);
+            config.settings.statusWidgets = widgets;
+            saveConfig();
+            renderStatusWidgetList();
+            renderStatusWidgets();
+        }
+
+        function deleteStatusWidget(id) {
+            const widgets = getStatusWidgets();
+            const filtered = widgets.filter(widget => widget.id !== id);
+            if (!filtered.length) return;
+            config.settings.statusWidgets = filtered;
+            if (selectedStatusWidgetId === id) selectedStatusWidgetId = filtered[0].id;
+            saveConfig();
+            renderStatusWidgetList();
+            syncStatusWidgetForm();
+            renderStatusWidgets();
+        }
+
+        function addStatusWidget() {
+            const widgets = getStatusWidgets();
+            const newWidget = normalizeStatusWidget({
+                id: generateStatusWidgetId(),
+                label: `Widget ${widgets.length + 1}`,
+                source: "machine_state",
+                unit: "",
+                decimals: 0,
+                tone: "default",
+                live: true,
+                manualValue: ""
+            });
+            widgets.push(newWidget);
+            config.settings.statusWidgets = widgets;
+            selectedStatusWidgetId = newWidget.id;
+            saveConfig();
+            renderStatusWidgetList();
+            syncStatusWidgetForm();
+            renderStatusWidgets();
+        }
+
+        function resetStatusWidgetsToDefault() {
+            if (!confirm("Reset status widgets to defaults?")) return;
+            config.settings.statusWidgets = createDefaultStatusWidgets();
+            selectedStatusWidgetId = config.settings.statusWidgets[0].id;
+            saveConfig();
+            renderStatusWidgetList();
+            syncStatusWidgetForm();
+            renderStatusWidgets();
+        }
+
+        function openStatusEditor() {
+            const modal = document.getElementById("status-editor-modal");
+            if (!modal) return;
+            const widgets = getStatusWidgets();
+            selectedStatusWidgetId = selectedStatusWidgetId || widgets[0]?.id || null;
+            renderStatusWidgetList();
+            syncStatusWidgetForm();
+            modal.classList.add("active");
+        }
+
+        function closeStatusEditor() {
+            const modal = document.getElementById("status-editor-modal");
+            if (modal) modal.classList.remove("active");
         }
 
         function toBool(value, fallback = false) {
@@ -2015,6 +2532,7 @@
             statusEl.textContent = connected ? `Connected${stateText ? ` (${stateText})` : ""}` : "Disconnected";
             hostEl.textContent = window.location.host || window.location.hostname;
             dotEl.style.background = connected ? "var(--success)" : "var(--danger)";
+            if (!connected) updateTelemetry({ machine_state: "Disconnected" });
         }
 
         function logConsole(message, type = "receive") {
@@ -2048,22 +2566,53 @@
             return `${protocol}://${host}`;
         }
 
-        function updateAxisDisplay(x, y, z) {
-            if (Number.isFinite(x)) document.getElementById("pos-x").textContent = `${x.toFixed(3)} mm`;
-            if (Number.isFinite(y)) document.getElementById("pos-y").textContent = `${y.toFixed(3)} mm`;
-            if (Number.isFinite(z)) document.getElementById("pos-z").textContent = `${z.toFixed(3)} mm`;
+        function updateAxisDisplay(x, y, z, kind = "mpos") {
+            if (kind === "wpos") {
+                updateTelemetry({
+                    wpos_x: Number.isFinite(x) ? x : telemetry.wpos_x,
+                    wpos_y: Number.isFinite(y) ? y : telemetry.wpos_y,
+                    wpos_z: Number.isFinite(z) ? z : telemetry.wpos_z
+                });
+                return;
+            }
+            updateTelemetry({
+                mpos_x: Number.isFinite(x) ? x : telemetry.mpos_x,
+                mpos_y: Number.isFinite(y) ? y : telemetry.mpos_y,
+                mpos_z: Number.isFinite(z) ? z : telemetry.mpos_z
+            });
         }
 
         function parseStatusMessage(line) {
             if (!line.startsWith("<") || !line.endsWith(">")) return;
             const inner = line.slice(1, -1);
             const fields = inner.split("|");
-            if (fields.length > 0) setConnectionState(true, fields[0]);
+            if (fields.length > 0) {
+                const machineState = fields[0];
+                setConnectionState(true, machineState);
+                updateTelemetry({ machine_state: machineState });
+            }
 
             for (const field of fields) {
-                if (field.startsWith("MPos:") || field.startsWith("WPos:")) {
+                if (field.startsWith("MPos:")) {
                     const values = field.substring(5).split(",");
-                    updateAxisDisplay(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]));
+                    updateAxisDisplay(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]), "mpos");
+                } else if (field.startsWith("WPos:")) {
+                    const values = field.substring(5).split(",");
+                    updateAxisDisplay(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]), "wpos");
+                } else if (field.startsWith("FS:")) {
+                    const values = field.substring(3).split(",");
+                    updateTelemetry({
+                        feed_rate: Number.parseFloat(values[0]),
+                        spindle_rpm: Number.parseFloat(values[1])
+                    });
+                } else if (field.startsWith("Bf:")) {
+                    const values = field.substring(3).split(",");
+                    updateTelemetry({
+                        planner_buffer: Number.parseFloat(values[0]),
+                        serial_buffer: Number.parseFloat(values[1])
+                    });
+                } else if (field.startsWith("Ln:")) {
+                    updateTelemetry({ line_number: Number.parseFloat(field.substring(3)) });
                 }
             }
         }
@@ -2074,7 +2623,7 @@
 
             fluid.ws.onopen = () => {
                 setConnectionState(true);
-                sendFluidCommand("?", true);
+                sendFluidCommand("?", true).catch(() => {});
             };
             fluid.ws.onclose = () => {
                 setConnectionState(false);
@@ -2083,9 +2632,17 @@
             fluid.ws.onerror = () => {
                 setConnectionState(false);
             };
-            fluid.ws.onmessage = (event) => {
-                if (event.data instanceof ArrayBuffer) return;
-                const msg = String(event.data);
+            fluid.ws.onmessage = async (event) => {
+                let msg = "";
+                if (typeof event.data === "string") {
+                    msg = event.data;
+                } else if (event.data instanceof Blob) {
+                    msg = await event.data.text();
+                } else if (event.data instanceof ArrayBuffer) {
+                    return;
+                } else {
+                    return;
+                }
                 const parts = msg.split(":");
                 if (parts[0] === "currentID" || parts[0] === "CURRENT_ID") {
                     fluid.pageId = parts[1] || "";
@@ -2111,6 +2668,15 @@
             const response = await fetch(url, { method: "GET" });
             if (!response.ok) {
                 const errorText = await response.text();
+                if ((errorText || "").toLowerCase().includes("websocket dead")) {
+                    setConnectionState(false);
+                    if (!fluid.reconnectTimer) {
+                        fluid.reconnectTimer = setTimeout(() => {
+                            fluid.reconnectTimer = null;
+                            startSocket();
+                        }, 200);
+                    }
+                }
                 throw new Error(errorText || `HTTP ${response.status}`);
             }
             const text = await response.text();
@@ -2133,6 +2699,41 @@
                 logConsole(`Init failed: ${err.message}`, "error");
             }
             startSocket();
+        }
+
+        async function refreshUserOutputVoltages() {
+            try {
+                const response = await fetch("/command_silent?commandText=" + encodeURIComponent("[ESP430]json=yes"));
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const raw = await response.text();
+                const parsed = JSON.parse(raw);
+                const a0 = Number(parsed.analog0_v);
+                const a1 = Number(parsed.analog1_v);
+                updateTelemetry({
+                    analog0_v: Number.isFinite(a0) ? a0 : null,
+                    analog1_v: Number.isFinite(a1) ? a1 : null
+                });
+            } catch (_) {
+                updateTelemetry({
+                    analog0_v: null,
+                    analog1_v: null
+                });
+            }
+        }
+
+        async function refreshRealtimeStatus() {
+            try {
+                const response = await fetch("/command_silent?commandText=" + encodeURIComponent("?"));
+                if (!response.ok) return;
+                const text = await response.text();
+                text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
+                    if (line.startsWith("<") && line.endsWith(">")) {
+                        parseStatusMessage(line);
+                    }
+                });
+            } catch (_) {
+                // Ignore transient polling failures; websocket updates remain primary.
+            }
         }
 
         function jogDeltaFromDir(dir, step) {
@@ -2766,7 +3367,10 @@
                 reader.onload = event => {
                     try {
                         config = JSON.parse(event.target.result);
+                        if (!config.pins || typeof config.pins !== "object") config.pins = {};
+                        if (!config.settings || typeof config.settings !== "object") config.settings = {};
                         saveConfig();
+                        renderStatusWidgets();
                         logConsole('Configuration loaded successfully', 'receive');
                     } catch (err) {
                         logConsole('Error loading configuration file', 'error');
@@ -2776,6 +3380,60 @@
             };
             input.click();
         };
+
+        function initializeStatusWidgetEditor() {
+            const openBtn = document.getElementById("open-status-editor");
+            const closeBtn = document.getElementById("close-status-editor");
+            const saveBtn = document.getElementById("status-widget-save");
+            const addBtn = document.getElementById("status-widget-add");
+            const resetBtn = document.getElementById("status-widget-reset");
+            const modal = document.getElementById("status-editor-modal");
+            const labelEl = document.getElementById("status-widget-label");
+            const sourceEl = document.getElementById("status-widget-source");
+            const unitEl = document.getElementById("status-widget-unit");
+            const decimalsEl = document.getElementById("status-widget-decimals");
+            const toneEl = document.getElementById("status-widget-tone");
+            const liveEl = document.getElementById("status-widget-live");
+            const manualEl = document.getElementById("status-widget-manual");
+
+            renderStatusSourceOptions(sourceEl, "machine_state");
+
+            openBtn?.addEventListener("click", openStatusEditor);
+            closeBtn?.addEventListener("click", closeStatusEditor);
+            saveBtn?.addEventListener("click", () => {
+                closeStatusEditor();
+                logConsole("Status widget layout saved", "receive");
+            });
+            addBtn?.addEventListener("click", addStatusWidget);
+            resetBtn?.addEventListener("click", resetStatusWidgetsToDefault);
+
+            modal?.addEventListener("click", (event) => {
+                if (event.target === modal) closeStatusEditor();
+            });
+
+            labelEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, label: event.target.value }));
+            });
+            sourceEl?.addEventListener("change", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, source: event.target.value }));
+            });
+            unitEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, unit: event.target.value }));
+            });
+            decimalsEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, decimals: Number(event.target.value) }));
+            });
+            toneEl?.addEventListener("change", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, tone: event.target.value }));
+            });
+            liveEl?.addEventListener("change", (event) => {
+                manualEl.disabled = event.target.checked;
+                mutateSelectedStatusWidget(widget => ({ ...widget, live: event.target.checked }));
+            });
+            manualEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, manualValue: event.target.value }));
+            });
+        }
 
         window.addEventListener('load', () => {
             document.getElementById("home-all-btn").addEventListener("click", async () => {
@@ -2810,8 +3468,14 @@
                 toolbar.appendChild(configBtns);
             }
 
+            initializeStatusWidgetEditor();
+            renderStatusWidgets();
             initFluidNC();
             refreshFiles();
+            refreshRealtimeStatus();
+            refreshUserOutputVoltages();
+            setInterval(refreshRealtimeStatus, 1500);
+            setInterval(refreshUserOutputVoltages, 2000);
         });
     </script>
 </body>
