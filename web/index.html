@@ -450,6 +450,12 @@
             overflow: hidden;
         }
 
+        .config-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
         .pcb-image-wrapper {
             position: relative;
             max-width: 90%;
@@ -1258,6 +1264,11 @@
 
             <!-- Configuration Tab -->
             <div class="tab-content" id="config">
+                <div class="config-actions">
+                    <button class="btn" onclick="updateConfigYaml()">
+                        <i class="fas fa-file-code"></i> Update Config YAML
+                    </button>
+                </div>
                 <div class="pin-config-wrapper">
                     <div class="pcb-image-wrapper">
                         <img src="render.png" alt="CNC Board PCB" class="pcb-render-image" id="pcb-image">
@@ -1286,14 +1297,14 @@
                                   data-terminal-type="relay" data-terminal-name="RELAY 3"></rect>
                             
                             <!-- Axis Terminals (Bottom - 7 terminals) -->
-                            <rect id="axis-x" class="hotspot" x="791" y="467" width="90" height="55" 
-                                  data-terminal-type="axis" data-terminal-name="AXIS X"></rect>
-                            <rect id="axis-y" class="hotspot" x="898" y="467" width="90" height="55" 
-                                  data-terminal-type="axis" data-terminal-name="AXIS Y"></rect>
-                            <rect id="axis-z" class="hotspot" x="1005" y="467" width="90" height="55" 
-                                  data-terminal-type="axis" data-terminal-name="AXIS Z"></rect>
-                           <rect id="axis-a" class="hotspot" x="1112" y="467" width="90" height="55"
-                                  data-terminal-type="axis" data-terminal-name="AXIS A"></rect>
+                            <rect id="axis1" class="hotspot" x="791" y="467" width="90" height="55" 
+                                  data-terminal-type="axis" data-terminal-name="AXIS 1"></rect>
+                            <rect id="axis2" class="hotspot" x="898" y="467" width="90" height="55" 
+                                  data-terminal-type="axis" data-terminal-name="AXIS 2"></rect>
+                            <rect id="axis3" class="hotspot" x="1005" y="467" width="90" height="55" 
+                                  data-terminal-type="axis" data-terminal-name="AXIS 3"></rect>
+                           <rect id="axis4" class="hotspot" x="1112" y="467" width="90" height="55"
+                                  data-terminal-type="axis" data-terminal-name="AXIS 4"></rect>
                             
                             
                             <!-- Highlight overlay -->
@@ -1331,7 +1342,7 @@
                             <div class="config-item">
                                 <label>Enable Input</label>
                                 <label class="switch">
-                                    <input type="checkbox" checked>
+                                    <input type="checkbox" checked name="input-enabled">
                                     <span class="slider"></span>
                                 </label>
                             </div>
@@ -1375,13 +1386,13 @@
                             <div class="config-item">
                                 <label>Enable Relay</label>
                                 <label class="switch">
-                                    <input type="checkbox" checked>
+                                    <input type="checkbox" checked name="relay-enabled">
                                     <span class="slider"></span>
                                 </label>
                             </div>
                             <div class="config-item">
                                 <label>Function</label>
-                                <select>
+                                <select id="relay-function" name="relay-function">
                                     <option>Spindle Control</option>
                                     <option>Coolant</option>
                                     <option>Vacuum</option>
@@ -1392,7 +1403,7 @@
                             </div>
                             <div class="config-item">
                                 <label>Max Load (A)</label>
-                                <input type="number" value="5" min="1" max="10">
+                                <input type="number" value="5" min="1" max="10" id="relay-max-load" name="relay-max-load">
                             </div>
                         </div>
 
@@ -1485,7 +1496,7 @@
                                 <div class="config-item">
                                     <label>Enable I/O</label>
                                     <label class="switch">
-                                        <input type="checkbox" name="axis-invert">
+                                        <input type="checkbox" name="axis-io-enabled">
                                         <span class="slider"></span>
                                     </label>
                                     <select id="axis-iotype">
@@ -1499,7 +1510,7 @@
                                 <div class="config-item">
                                     <label>Enable ADC</label>
                                     <label class="switch">
-                                        <input type="checkbox" name="axis-invert">
+                                        <input type="checkbox" name="axis-adc-enabled">
                                         <span class="slider"></span>
                                     </label>
                                     <select id="axis-adctype">
@@ -1518,13 +1529,13 @@
                             <div class="config-item">
                                 <label>Enable Output</label>
                                 <label class="switch">
-                                    <input type="checkbox" checked>
+                                    <input type="checkbox" checked name="output-enabled">
                                     <span class="slider"></span>
                                 </label>
                             </div>
                             <div class="config-item">
                                 <label>Function</label>
-                                <select>
+                                <select id="output-function" name="output-function">
                                     <option>PWM Spindle</option>
                                     <option>Laser Control</option>
                                     <option>Tool Change</option>
@@ -1620,12 +1631,344 @@
             const saved = localStorage.getItem('cnc-config');
             if (saved) {
                 config = JSON.parse(saved);
+                if (config && config.pins) {
+                    const legacyToNumericAxis = {
+                        "axis-x": "axis1",
+                        "axis-y": "axis2",
+                        "axis-z": "axis3",
+                        "axis-a": "axis4"
+                    };
+                    let migrated = false;
+                    Object.keys(legacyToNumericAxis).forEach(oldKey => {
+                        const newKey = legacyToNumericAxis[oldKey];
+                        if (config.pins[oldKey] && !config.pins[newKey]) {
+                            config.pins[newKey] = config.pins[oldKey];
+                            delete config.pins[oldKey];
+                            migrated = true;
+                        }
+                    });
+                    if (migrated) {
+                        saveConfig();
+                    }
+                }
             }
         }
 
         // Save config
         function saveConfig() {
             localStorage.setItem('cnc-config', JSON.stringify(config));
+        }
+
+        function toBool(value, fallback = false) {
+            if (typeof value === "boolean") return value;
+            if (typeof value === "string") {
+                const v = value.trim().toLowerCase();
+                if (v === "true" || v === "1" || v === "yes" || v === "on") return true;
+                if (v === "false" || v === "0" || v === "no" || v === "off") return false;
+            }
+            return fallback;
+        }
+
+        function toNum(value, fallback = 0) {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : fallback;
+        }
+
+        function yamlScalar(value) {
+            if (value === null || typeof value === "undefined") return "null";
+            if (typeof value === "boolean") return value ? "true" : "false";
+            if (typeof value === "number") return Number.isFinite(value) ? String(value) : "0";
+            const s = String(value);
+            if (
+                s === "" ||
+                /^\s|\s$/.test(s) ||
+                /[:#\-\[\]\{\},&\*!|>'"%@`]/.test(s) ||
+                /^(true|false|null|~|yes|no|on|off)$/i.test(s) ||
+                !Number.isNaN(Number(s))
+            ) {
+                return JSON.stringify(s);
+            }
+            return s;
+        }
+
+        function objectToYaml(value, indent = 0) {
+            const pad = "  ".repeat(indent);
+            if (Array.isArray(value)) {
+                if (!value.length) return `${pad}[]`;
+                return value.map(item => {
+                    if (item && typeof item === "object") {
+                        const nested = objectToYaml(item, indent + 1);
+                        return `${pad}-\n${nested}`;
+                    }
+                    return `${pad}- ${yamlScalar(item)}`;
+                }).join("\n");
+            }
+
+            if (value && typeof value === "object") {
+                const keys = Object.keys(value);
+                if (!keys.length) return `${pad}{}`;
+                return keys.map(key => {
+                    const v = value[key];
+                    if (v && typeof v === "object") {
+                        return `${pad}${key}:\n${objectToYaml(v, indent + 1)}`;
+                    }
+                    return `${pad}${key}: ${yamlScalar(v)}`;
+                }).join("\n");
+            }
+
+            return `${pad}${yamlScalar(value)}`;
+        }
+
+        // Global hardware pin map: edit this single object to remap pin headers and axis motor GPIOs.
+        const HARDWARE_PIN_MAP = {
+            headers: {
+                input1: "gpio.48",
+                input2: "gpio.47",
+                input3: "NO_PIN",
+                input4: "NO_PIN",
+                relay1: "gpio.39",
+                relay2: "gpio.38",
+                relay3: "NO_PIN",
+                output1: "gpio.40"
+            },
+            axes: {
+                x: { step_pin: "gpio.4", direction_pin: "gpio.5", disable_pin: "NO_PIN" },
+                y: { step_pin: "gpio.6", direction_pin: "gpio.7", disable_pin: "gpio.9" },
+                z: { step_pin: "gpio.15", direction_pin: "gpio.16:low", disable_pin: "gpio.14" }
+            },
+            axis_headers: {
+                "axis1": "x",
+                "axis2": "y",
+                "axis3": "z",
+                "axis4": "a"
+            },
+            control: {
+                estop_pin: "gpio.3:pu"
+            },
+            spi: {
+                miso_pin: "gpio.13",
+                mosi_pin: "gpio.11",
+                sck_pin: "gpio.12"
+            },
+            sdcard: {
+                cs_pin: "gpio.10",
+                card_detect_pin: "NO_PIN"
+            }
+        };
+
+        const BASE_CONFIG = {
+            board: "None",
+            name: "SpeckNC V0.2",
+            meta: "",
+            stepping: {
+                engine: "RMT",
+                idle_ms: 255,
+                pulse_us: 4,
+                dir_delay_us: 0,
+                disable_delay_us: 0,
+                segments: 12
+            },
+            spi: {
+                miso_pin: HARDWARE_PIN_MAP.spi.miso_pin,
+                mosi_pin: HARDWARE_PIN_MAP.spi.mosi_pin,
+                sck_pin: HARDWARE_PIN_MAP.spi.sck_pin
+            },
+            sdcard: {
+                cs_pin: HARDWARE_PIN_MAP.sdcard.cs_pin,
+                card_detect_pin: HARDWARE_PIN_MAP.sdcard.card_detect_pin,
+                frequency_hz: 8000000
+            },
+            kinematics: { Cartesian: {} },
+            axes: {
+                shared_stepper_disable_pin: "NO_PIN",
+                shared_stepper_reset_pin: "NO_PIN",
+                homing_runs: 2,
+                x: {
+                    steps_per_mm: 319.47,
+                    max_rate_mm_per_min: 1000.0,
+                    acceleration_mm_per_sec2: 150.0,
+                    max_travel_mm: 1000.0,
+                    soft_limits: false,
+                    motor0: {
+                        limit_neg_pin: "NO_PIN",
+                        limit_pos_pin: "NO_PIN",
+                        limit_all_pin: "NO_PIN",
+                        hard_limits: false,
+                        pulloff_mm: 1.0,
+                        standard_stepper: { step_pin: HARDWARE_PIN_MAP.axes.x.step_pin, direction_pin: HARDWARE_PIN_MAP.axes.x.direction_pin, disable_pin: HARDWARE_PIN_MAP.axes.x.disable_pin },
+                        null_motor: {}
+                    }
+                },
+                y: {
+                    steps_per_mm: 319.47,
+                    max_rate_mm_per_min: 1000.0,
+                    acceleration_mm_per_sec2: 150.0,
+                    max_travel_mm: 1000.0,
+                    soft_limits: false,
+                    motor0: {
+                        limit_neg_pin: "NO_PIN",
+                        limit_pos_pin: "NO_PIN",
+                        limit_all_pin: "NO_PIN",
+                        hard_limits: false,
+                        pulloff_mm: 1.0,
+                        standard_stepper: { step_pin: HARDWARE_PIN_MAP.axes.y.step_pin, direction_pin: HARDWARE_PIN_MAP.axes.y.direction_pin, disable_pin: HARDWARE_PIN_MAP.axes.y.disable_pin },
+                        null_motor: {}
+                    }
+                },
+                z: {
+                    steps_per_mm: 320.0,
+                    max_rate_mm_per_min: 1000.0,
+                    acceleration_mm_per_sec2: 75.0,
+                    max_travel_mm: 1000.0,
+                    soft_limits: false,
+                    motor0: {
+                        limit_neg_pin: "NO_PIN",
+                        limit_pos_pin: "NO_PIN",
+                        limit_all_pin: "NO_PIN",
+                        hard_limits: false,
+                        pulloff_mm: 1.0,
+                        standard_stepper: { step_pin: HARDWARE_PIN_MAP.axes.z.step_pin, direction_pin: HARDWARE_PIN_MAP.axes.z.direction_pin, disable_pin: HARDWARE_PIN_MAP.axes.z.disable_pin },
+                        null_motor: {}
+                    }
+                }
+            },
+            control: {
+                safety_door_pin: "NO_PIN",
+                reset_pin: "NO_PIN",
+                feed_hold_pin: "NO_PIN",
+                cycle_start_pin: "NO_PIN",
+                macro0_pin: "NO_PIN",
+                macro1_pin: "NO_PIN",
+                macro2_pin: "NO_PIN",
+                macro3_pin: "NO_PIN",
+                fault_pin: "NO_PIN",
+                estop_pin: HARDWARE_PIN_MAP.control.estop_pin
+            },
+            coolant: { flood_pin: "NO_PIN", mist_pin: "NO_PIN", delay_ms: 0 },
+            probe: { pin: "NO_PIN", toolsetter_pin: "NO_PIN", check_mode_start: true, hard_stop: false },
+            macros: {
+                startup_line0: "", startup_line1: "", Macro0: "", Macro1: "", Macro2: "", Macro3: "",
+                after_homing: "", after_reset: "", after_unlock: ""
+            },
+            start: { must_home: false, deactivate_parking: false, check_limits: true },
+            parking: {
+                enable: false, axis: "Z", target_mpos_mm: -5.0, rate_mm_per_min: 800.0, pullout_distance_mm: 5.0, pullout_rate_mm_per_min: 250.0
+            },
+            user_outputs: {
+                analog0_pin: "NO_PIN", analog1_pin: "NO_PIN", analog2_pin: "NO_PIN", analog3_pin: "NO_PIN",
+                analog0_hz: 5000, analog1_hz: 5000, analog2_hz: 5000, analog3_hz: 5000,
+                digital0_pin: HARDWARE_PIN_MAP.headers.relay1, digital1_pin: HARDWARE_PIN_MAP.headers.relay2, digital2_pin: HARDWARE_PIN_MAP.headers.relay3, digital3_pin: "NO_PIN",
+                digital4_pin: "NO_PIN", digital5_pin: "NO_PIN", digital6_pin: "NO_PIN", digital7_pin: "NO_PIN"
+            },
+            user_inputs: {
+                analog0_pin: "NO_PIN", analog1_pin: "NO_PIN", analog2_pin: "NO_PIN", analog3_pin: "NO_PIN",
+                digital0_pin: HARDWARE_PIN_MAP.headers.input1, digital1_pin: HARDWARE_PIN_MAP.headers.input2, digital2_pin: HARDWARE_PIN_MAP.headers.input3, digital3_pin: HARDWARE_PIN_MAP.headers.input4,
+                digital4_pin: "NO_PIN", digital5_pin: "NO_PIN", digital6_pin: "NO_PIN", digital7_pin: "NO_PIN"
+            },
+            arc_tolerance_mm: 0.002,
+            junction_deviation_mm: 0.01,
+            verbose_errors: true,
+            report_inches: false,
+            enable_parking_override_control: false,
+            use_line_numbers: false,
+            planner_blocks: 16
+        };
+
+        function mapInputToAxisLimit(doc, pinName, inputCfg) {
+            const axisKey = String(inputCfg.axis || "x").toLowerCase();
+            const direction = String(inputCfg.direction || "Min").toLowerCase();
+            const axis = doc.axes[axisKey];
+            if (!axis || !axis.motor0) return;
+            if (direction === "max") axis.motor0.limit_pos_pin = pinName;
+            else axis.motor0.limit_neg_pin = pinName;
+            axis.motor0.hard_limits = true;
+        }
+
+        function applyAxisSettings(doc, axisKey, data) {
+            const axis = doc.axes[axisKey];
+            if (!axis) return;
+            axis.steps_per_mm = toNum(data["axis-steps"], axis.steps_per_mm);
+            axis.max_rate_mm_per_min = toNum(data["axis-speed"], axis.max_rate_mm_per_min);
+            axis.acceleration_mm_per_sec2 = toNum(data["axis-accel"], axis.acceleration_mm_per_sec2);
+            axis.max_travel_mm = toNum(data["axis-max-travel"], axis.max_travel_mm);
+            axis.soft_limits = toBool(data["axis-soft-limits"], axis.soft_limits);
+            axis.motor0.hard_limits = toBool(data["axis-hard-limits"], axis.motor0.hard_limits);
+            const invert = toBool(data["axis-invert"], false);
+            const dir = String(axis.motor0.standard_stepper.direction_pin || "");
+            if (invert && !dir.includes(":low")) axis.motor0.standard_stepper.direction_pin = `${dir}:low`;
+            if (!invert) axis.motor0.standard_stepper.direction_pin = dir.replace(":low", "");
+            if (!toBool(data["axis-enable"], true)) {
+                axis.motor0.standard_stepper.step_pin = "NO_PIN";
+                axis.motor0.standard_stepper.direction_pin = "NO_PIN";
+                axis.motor0.standard_stepper.disable_pin = "NO_PIN";
+            }
+        }
+
+        function buildConfigYamlFromGui() {
+            const pins = config?.pins || {};
+            const doc = JSON.parse(JSON.stringify(BASE_CONFIG));
+
+            const axisMap = HARDWARE_PIN_MAP.axis_headers;
+            Object.keys(axisMap).forEach(pinId => {
+                if (pins[pinId]) applyAxisSettings(doc, axisMap[pinId], pins[pinId]);
+            });
+
+            const inputMap = { input1: "digital0_pin", input2: "digital1_pin", input3: "digital2_pin", input4: "digital3_pin" };
+            Object.keys(inputMap).forEach(inputId => {
+                const data = pins[inputId];
+                const targetKey = inputMap[inputId];
+                const pinName = HARDWARE_PIN_MAP.headers[inputId] || "NO_PIN";
+                if (!data || !toBool(data["input-enabled"], true)) {
+                    doc.user_inputs[targetKey] = "NO_PIN";
+                    return;
+                }
+                doc.user_inputs[targetKey] = pinName;
+                const fn = String(data["input-function"] || "limit").toLowerCase();
+                const activeLow = String(data["input-activeState"] || "high").toLowerCase() === "low";
+                const normalizedPin = activeLow ? `${pinName}:pu` : pinName;
+                if (fn === "estop") doc.control.estop_pin = normalizedPin;
+                if (fn === "probe") doc.probe.pin = normalizedPin;
+                if (fn === "limit") mapInputToAxisLimit(doc, normalizedPin, {
+                    axis: data["input-axis"],
+                    direction: data["input-direction"]
+                });
+            });
+
+            const relayMap = { relay1: "digital0_pin", relay2: "digital1_pin", relay3: "digital2_pin" };
+            Object.keys(relayMap).forEach(relayId => {
+                const data = pins[relayId];
+                const targetKey = relayMap[relayId];
+                if (!data || !toBool(data["relay-enabled"], true)) {
+                    doc.user_outputs[targetKey] = "NO_PIN";
+                    return;
+                }
+                doc.user_outputs[targetKey] = HARDWARE_PIN_MAP.headers[relayId] || "NO_PIN";
+            });
+
+            if (pins.output1 && toBool(pins.output1["output-enabled"], false)) {
+                doc.user_outputs.digital3_pin = HARDWARE_PIN_MAP.headers.output1 || "NO_PIN";
+            }
+
+            return objectToYaml(doc) + "\n";
+        }
+
+        async function updateConfigYaml() {
+            if (currentActiveHotspot) {
+                saveConfiguration();
+            }
+            const yaml = buildConfigYamlFromGui();
+            const blob = new Blob([yaml], { type: "text/plain" });
+            const formData = new FormData();
+            formData.append("/config.yamlS", String(blob.size));
+            formData.append("myfiles[]", blob, "/config.yaml");
+            try {
+                const response = await fetch("/files", { method: "POST", body: formData });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                logConsole("config.yaml updated from GUI settings", "receive");
+                await refreshFiles();
+            } catch (err) {
+                logConsole(`config.yaml update failed: ${err.message}`, "error");
+            }
         }
 
         // Tab Navigation
