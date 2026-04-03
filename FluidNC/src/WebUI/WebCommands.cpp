@@ -137,19 +137,40 @@ namespace WebUI {
             return Error::Ok;
         }
 
-        // Read user_outputs analog0_pin and analog1_pin as millivolts and return volts.
+        // Read analog0_pin and analog1_pin as millivolts and return volts.
+        // Prefer user_inputs because ADS1115-backed analog inputs are configured there.
         static Error showUserOutputVoltages(const char* parameter, AuthenticationLevel auth_level, Channel& out) {  // ESP430
             float v0 = 0.0f;
             float v1 = 0.0f;
+            bool  has0 = false;
+            bool  has1 = false;
 
-            auto& pin0 = config->_userOutputs->_analogOutput[0];
-            auto& pin1 = config->_userOutputs->_analogOutput[1];
-
-            if (!pin0.undefined()) {
-                v0 = pin0.readAnalogMV() / 1000.0f;
+            if (config->_userInputs != nullptr) {
+                auto& pin0 = Machine::UserInputs::analogInput[0];
+                auto& pin1 = Machine::UserInputs::analogInput[1];
+                if (!pin0.undefined()) {
+                    v0 = pin0.readAnalogMV() / 1000.0f;
+                    has0 = true;
+                }
+                if (!pin1.undefined()) {
+                    v1 = pin1.readAnalogMV() / 1000.0f;
+                    has1 = true;
+                }
             }
-            if (!pin1.undefined()) {
-                v1 = pin1.readAnalogMV() / 1000.0f;
+
+            if (config->_userOutputs != nullptr) {
+                if (!has0) {
+                    auto& pin0 = config->_userOutputs->_analogOutput[0];
+                    if (!pin0.undefined()) {
+                        v0 = pin0.readAnalogMV() / 1000.0f;
+                    }
+                }
+                if (!has1) {
+                    auto& pin1 = config->_userOutputs->_analogOutput[1];
+                    if (!pin1.undefined()) {
+                        v1 = pin1.readAnalogMV() / 1000.0f;
+                    }
+                }
             }
 
             if (paramIsJSON(parameter)) {

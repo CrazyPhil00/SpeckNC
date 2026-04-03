@@ -1,59 +1,137 @@
-<img src="https://github.com/bdring/FluidNC/wiki/images/logos/FluidNC.svg" width="600">
+# SpeckNC
 
-## Introduction
+Custom FluidNC fork for SpeckNC hardware and WebUI workflow.
 
-**FluidNC** is a CNC firmware optimized for the ESP32 controller. It is the next generation of firmware from the creators of Grbl_ESP32. It includes a web based UI and the flexibility to operate a wide variety of machine types. This includes the ability to control machines with multiple tool types such as laser plus spindle or a tool changer.  
+## What Was Added
 
-## Note about this Async fork/branch
+- Custom WebUI dashboard and configuration workflow in `web/index.html`
+- GUI-to-YAML conversion and upload to `/config.yaml`
+- Global hardware pin mapping object (`HARDWARE_PIN_MAP`) for header/axis pin assignment
+- Numeric axis header IDs (`axis1..axis4`) with legacy migration (`axis-x/y/z/a` -> numeric)
+- Live analog voltage endpoint from `user_outputs.analog0_pin` and `analog1_pin`
+- Configurable status widgets UI (add/edit/reorder/delete, live or manual values)
+- Websocket robustness improvements (Blob message decode, reconnect handling)
+- Editor fallback when ACE CDN is unavailable
+- SD-first board image loading (`/sd/render.png`) with flash fallback (`render.png`)
+- ESP32-S3 default build + 16MB partition setup
 
-This is an implementation of the WebUI using AsyncWebServer and AsyncWebSocket from https://github.com/ESP32Async/ESPAsyncWebServer.git
-It is still a very early work and not much has been tested so far in real world usage, so use it or try it at your own risks.
-It was tested with both webui3 and webui2 and so far all basic functionality seems to work, as well as settings, configurations and OTA update.
+## Firmware Additions
 
-The goal behind implementing async was to fix the issue where if any TCP client die without sending a gracefull disconnection during a job operation (think about a computer going into standby, a network cable unplugged from a switch / computer, etc.), and if using auto reports (which uses websockets), this will hang the job for some time. Based on preliminary testings, this new async mplementation does seem more rebust to these types of disconnections.
+File: `FluidNC/src/WebUI/WebCommands.cpp`
 
-Github reference issue: https://github.com/bdring/FluidNC/issues/1360
+- `showUserOutputVoltages(...)` (ESP430)
+  - Reads:
+    - `config->_userOutputs->_analogOutput[0].readAnalogMV()`
+    - `config->_userOutputs->_analogOutput[1].readAnalogMV()`
+  - Supports JSON output:
+    - `analog0_v`
+    - `analog1_v`
+- Web command registration:
+  - `ESP430` -> `"UserOutputs/Voltages"`
 
-## Firmware Architecture
+## ADS1115 I2C ADC Integration
 
-- Object-Oriented hierarchical design
-- Hardware abstraction for machine features like spindles, motors, and stepper drivers
-- Extensible - Adding new features is much easier for the firmware as well as gcode senders.
+ADS1115 support is present across parser, extenders, and pin implementation:
 
-## Machine Definition Method
+- Pin parser support in `FluidNC/src/Pin.cpp`
+  - Pin syntax: `ads1115_[0-3].[0-3]`
+  - Example: `ads1115_0.1`
+- ADC device implementation in:
+  - `FluidNC/src/Extenders/ADS1115.h`
+  - `FluidNC/src/Extenders/ADS1115.cpp`
+- Analog pin wrapper in:
+  - `FluidNC/src/Pins/AnalogPinDetail.h`
+  - `FluidNC/src/Pins/AnalogPinDetail.cpp`
+- Extender registration in:
+  - `FluidNC/src/Extenders/Extenders.cpp`
+  - Available config sections: `ads1115_0` .. `ads1115_3`
 
-There is no need to compile the firmware. You use an installation script to upload the latest release of the firmware and then create [config file](http://wiki.fluidnc.com/en/config/overview) text file that describes your machine.  That file is uploaded to the FLASH on the ESP32 using the USB/Serial port or WIFI.
+Supported ADS1115 config keys (per device):
 
-You can have multiple config files stored on the ESP32. The default is config.yaml, but you can change that with [**$Config/Filename=<myOtherConfig.yaml>**](http://wiki.fluidnc.com/en/features/commands_and_settings#config_filename)
+- `address`
+- `pga`
+- `data_rate`
+- `continuous_mode`
 
-## Basic Grbl Compatibility
+Example YAML snippet:
 
-The intent is to maintain as much Grbl compatibility as possible. It is 100% compatible with the day to day operations of running gcode with a sender, so there is no change to the Grbl gcode send/response protocol, and all Grbl gcode are supported. Most of the $ settings have been replaced with easily readable items in the config file.
+```yaml
+i2c:
+  sda_pin: gpio.8
+  scl_pin: gpio.9
+  frequency: 100000
 
+extenders:
+  ads1115_0:
+    address: 0x48
+    pga: 2
+    data_rate: 4
+    continuous_mode: false
 
-## WebUI
+user_outputs:
+  analog0_pin: ads1115_0.0
+  analog1_pin: ads1115_0.1
+```
 
-FluidNC includes a built-in browser-based Web UI (Esp32_WebUI) so you control the machine from a PC, phone, or tablet on the same Wifi network.
+## WebUI Additions (Key Functions)
 
-## Wiki
+File: `web/index.html`
 
-[Check out the wiki](http://wiki.fluidnc.com) if you want the learn more about the feature or how to use it.
+- YAML/config pipeline:
+  - `buildConfigYamlFromGui()`
+  - `updateConfigYaml()`
+  - `mapInputToAxisLimit()`
+  - `applyAxisSettings()`
+  - `objectToYaml()`
+  - `yamlScalar()`
+- Status system:
+  - `refreshUserOutputVoltages()`
+  - `refreshRealtimeStatus()`
+  - `updateTelemetry()`
+  - `renderStatusWidgets()`
+  - `renderStatusWidgetList()`
+  - `openStatusEditor()`
+  - `initializeStatusWidgetEditor()`
+  - `addStatusWidget()`
+  - `moveStatusWidget()`
+  - `deleteStatusWidget()`
+  - `resetStatusWidgetsToDefault()`
+- Communication/reliability:
+  - `parseStatusMessage()`
+  - `sendFluidCommand()`
+  - `startSocket()`
+- File editor reliability:
+  - `initAceEditor()` with fallback editor when `ace` is unavailable
 
-## Credits
+## Build & Flash Configuration
 
-The original [Grbl](https://github.com/gnea/grbl) is an awesome project by Sungeon (Sonny) Jeon. I have known him for many years and he is always very helpful. I have used Grbl on many projects.
+File: `platformio.ini`
 
-The Wifi and WebUI is based on [this project.](https://github.com/luc-github/ESP3D-WEBUI)  
+- Default environment:
+  - `default_envs = wifi_s3`
+- S3 flash config:
+  - `board_upload.flash_size = 16MB`
+  - `board_build.partitions = FluidNC/ld/esp32s3/app3M_spiffs9M_16MB.csv`
 
-## Discussion
+This expands local filesystem space significantly compared to `min_littlefs.csv`.
 
-<img src="http://wiki.fluidnc.com/discord-logo_trans.png" width="180">
+## PCB Image Strategy
 
-We have a Discord server for the development this project. Ask for an invite
+In `web/index.html`, the board image is loaded from SD first:
 
+- Primary: `/sd/render.png`
+- Fallback: `render.png` (local flash filesystem)
 
-## Donations
+HTML:
 
-This project requires a lot of work and often expensive items for testing. Please consider a safe, secure and highly appreciated donation via the PayPal link below or via the GitHub sponsor link at the top of the page.
+```html
+<img src="/sd/render.png" onerror="this.onerror=null;this.src='render.png';" ...>
+```
 
-[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=8DYLB6ZYYDG7Y)
+## Quick Usage Notes
+
+- To update config from GUI, use **Update Config YAML** in the Configuration tab.
+- To read analog voltages from firmware:
+  - `/command_silent?commandText=[ESP430]json=yes`
+- To use SD image:
+  - place `render.png` on SD card root.

@@ -240,6 +240,54 @@
             margin-top: 1rem;
         }
 
+        .zero-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .machine-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+            margin-top: 1.25rem;
+        }
+
+        .machine-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            min-height: 44px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        }
+
+        .machine-action-btn.btn-secondary {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+        }
+
+        .machine-action-btn.btn-success {
+            background: linear-gradient(180deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.92));
+            color: #08140d;
+            border-color: rgba(74, 222, 128, 0.45);
+        }
+
+        .machine-action-btn.btn-danger {
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0.96), rgba(185, 28, 28, 0.94));
+            color: #fff4f4;
+            border-color: rgba(248, 113, 113, 0.4);
+        }
+
+        .machine-action-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
         .step-btn {
             flex: 1;
             background: var(--bg-tertiary);
@@ -574,6 +622,51 @@
             display: flex;
             gap: 0.5rem;
             margin-bottom: 0.75rem;
+        }
+
+        .wifi-editor-container {
+            width: 100%;
+            max-width: 760px;
+            max-height: 86vh;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .wifi-editor-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .wifi-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+        }
+
+        .wifi-section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.85rem;
+        }
+
+        .wifi-hint {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .wifi-inline-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
         }
 
         .pcb-image-wrapper {
@@ -1044,6 +1137,15 @@
             font-family: 'Monaco', 'Menlo', monospace;
         }
 
+        .file-volume {
+            min-width: 140px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 6px;
+        }
+
         .file-list-container {
             flex: 1;
             background: var(--bg-secondary);
@@ -1286,12 +1388,28 @@
                             <button class="step-btn" data-step="100">100mm</button>
                         </div>
 
-                        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
-                            <button class="btn btn-success" style="flex: 1;" id="home-all-btn">
+                        <div class="zero-controls">
+                            <button class="btn btn-secondary zero-axis-btn" data-zero="X">Zero X</button>
+                            <button class="btn btn-secondary zero-axis-btn" data-zero="Y">Zero Y</button>
+                            <button class="btn btn-secondary zero-axis-btn" data-zero="Z">Zero Z</button>
+                            <button class="btn btn-secondary zero-axis-btn" data-zero="XYZ">Zero XYZ</button>
+                        </div>
+
+                        <div class="machine-actions">
+                            <button class="btn btn-success machine-action-btn" id="home-all-btn">
                                 <i class="fas fa-home"></i> Home All
                             </button>
-                            <button class="btn btn-danger" style="flex: 1;" id="estop-btn">
+                            <button class="btn btn-danger machine-action-btn" id="estop-btn">
                                 <i class="fas fa-stop"></i> E-Stop
+                            </button>
+                            <button class="btn btn-secondary machine-action-btn" id="feedhold-btn">
+                                <i class="fas fa-pause"></i> Feed Hold
+                            </button>
+                            <button class="btn btn-secondary machine-action-btn" id="resume-btn">
+                                <i class="fas fa-play"></i> Resume
+                            </button>
+                            <button class="btn btn-secondary machine-action-btn" id="unlock-btn" style="grid-column: 1 / -1;">
+                                <i class="fas fa-unlock"></i> Unlock / Clear Alarm
                             </button>
                         </div>
                     </div>
@@ -1366,10 +1484,13 @@
                     <button class="btn" onclick="updateConfigYaml()">
                         <i class="fas fa-file-code"></i> Update Config YAML
                     </button>
+                    <button class="btn btn-success" onclick="openWifiSettings()">
+                        <i class="fas fa-microchip"></i> ESP32 WiFi
+                    </button>
                 </div>
                 <div class="pin-config-wrapper">
                     <div class="pcb-image-wrapper">
-                        <img src="render.png" alt="CNC Board PCB" class="pcb-render-image" id="pcb-image">
+                        <img src="/sd/render.png" onerror="this.onerror=null;this.src='render.png';" alt="CNC Board PCB" class="pcb-render-image" id="pcb-image">
                         
                         <svg class="pcb-hotspots" viewBox="0 0 1600 550" preserveAspectRatio="xMidYMid meet">
                             <!-- Power Terminal (Top Left) -->
@@ -1658,6 +1779,10 @@
             <div class="tab-content" id="files">
                 <div class="file-browser">
                     <div class="file-toolbar">
+                        <select class="file-volume" id="file-volume">
+                            <option value="flash">Flash</option>
+                            <option value="sd">SD Card</option>
+                        </select>
                         <input type="text" class="file-path" id="file-path" value="/" readonly>
                         <button class="btn" onclick="uploadFile()">
                             <i class="fas fa-upload"></i> Upload
@@ -1766,9 +1891,96 @@
         </div>
     </div>
 
-    <!-- Ace Editor -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-language_tools.js"></script>
+    <div class="editor-modal" id="wifi-editor-modal">
+        <div class="wifi-editor-container">
+            <div class="editor-toolbar">
+                <div class="editor-filename">ESP32 WiFi Settings</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" id="close-wifi-editor">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button class="btn btn-success" id="apply-wifi-settings">
+                        <i class="fas fa-wifi"></i> Apply WiFi
+                    </button>
+                </div>
+            </div>
+
+            <div class="wifi-editor-body">
+                <div class="wifi-section">
+                    <div class="wifi-section-title">General</div>
+                    <div class="config-item">
+                        <label for="wifi-mode">WiFi Mode</label>
+                        <select id="wifi-mode">
+                            <option value="0">Off</option>
+                            <option value="1">Station</option>
+                            <option value="2">Access Point</option>
+                            <option value="3">Station then AP Fallback</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label for="wifi-hostname">Hostname</label>
+                        <input type="text" id="wifi-hostname" maxlength="32" placeholder="specknc">
+                    </div>
+                    <div class="wifi-hint">These settings are applied through FluidNC WebUI settings, not `config.yaml`. A reconnect or reboot may be required after mode changes.</div>
+                </div>
+
+                <div class="wifi-section" id="wifi-sta-section">
+                    <div class="wifi-section-title">Station</div>
+                    <div class="config-item">
+                        <label for="wifi-sta-ssid">SSID</label>
+                        <input type="text" id="wifi-sta-ssid" maxlength="32" placeholder="Your router SSID">
+                    </div>
+                    <div class="config-item">
+                        <label for="wifi-sta-password">Password</label>
+                        <input type="password" id="wifi-sta-password" maxlength="64" placeholder="Leave unchanged to keep current">
+                    </div>
+                    <div class="config-item">
+                        <label for="wifi-sta-ipmode">IP Mode</label>
+                        <select id="wifi-sta-ipmode">
+                            <option value="0">DHCP</option>
+                            <option value="1">Static</option>
+                        </select>
+                    </div>
+                    <div class="wifi-inline-grid" id="wifi-sta-static-grid">
+                        <div class="config-item">
+                            <label for="wifi-sta-ip">Static IP</label>
+                            <input type="text" id="wifi-sta-ip" placeholder="192.168.1.50">
+                        </div>
+                        <div class="config-item">
+                            <label for="wifi-sta-netmask">Netmask</label>
+                            <input type="text" id="wifi-sta-netmask" placeholder="255.255.255.0">
+                        </div>
+                        <div class="config-item">
+                            <label for="wifi-sta-gateway">Gateway</label>
+                            <input type="text" id="wifi-sta-gateway" placeholder="192.168.1.1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wifi-section" id="wifi-ap-section">
+                    <div class="wifi-section-title">Access Point</div>
+                    <div class="config-item">
+                        <label for="wifi-ap-ssid">AP SSID</label>
+                        <input type="text" id="wifi-ap-ssid" maxlength="32" placeholder="SpeckNC">
+                    </div>
+                    <div class="config-item">
+                        <label for="wifi-ap-password">AP Password</label>
+                        <input type="password" id="wifi-ap-password" maxlength="64" placeholder="Minimum 8 characters">
+                    </div>
+                    <div class="wifi-inline-grid">
+                        <div class="config-item">
+                            <label for="wifi-ap-channel">AP Channel</label>
+                            <input type="number" id="wifi-ap-channel" min="1" max="14" step="1" value="1">
+                        </div>
+                        <div class="config-item">
+                            <label for="wifi-ap-ip">AP Static IP</label>
+                            <input type="text" id="wifi-ap-ip" placeholder="192.168.0.1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Configuration Storage
@@ -1781,10 +1993,68 @@
         let aceEditor = null;
         let currentFile = null;
         let editorFallbackNotified = false;
+        let aceLoaderPromise = null;
 
-        function initAceEditor() {
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = src;
+                script.onload = () => resolve(src);
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function ensureAceLoaded() {
+            if (window.ace && typeof window.ace.edit === "function") return true;
+            if (aceLoaderPromise) return aceLoaderPromise;
+
+            aceLoaderPromise = (async () => {
+                const aceCandidates = [
+                    `${currentFileBasePath()}/ace.js`,
+                    `${currentFileBasePath()}/ace/ace.js`,
+                    "/sd/ace.js",
+                    "/ace.js",
+                    "/sd/ace/ace.js",
+                    "/ace/ace.js",
+                    "https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"
+                ];
+                const extCandidates = [
+                    `${currentFileBasePath()}/ext-language_tools.js`,
+                    `${currentFileBasePath()}/ace/ext-language_tools.js`,
+                    "/sd/ext-language_tools.js",
+                    "/ext-language_tools.js",
+                    "/sd/ace/ext-language_tools.js",
+                    "/ace/ext-language_tools.js",
+                    "https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-language_tools.js"
+                ];
+
+                let aceLoaded = false;
+                for (const src of aceCandidates) {
+                    try {
+                        await loadScript(src);
+                        aceLoaded = true;
+                        break;
+                    } catch (_) {}
+                }
+                if (!aceLoaded) return false;
+
+                for (const src of extCandidates) {
+                    try {
+                        await loadScript(src);
+                        break;
+                    } catch (_) {}
+                }
+                return !!(window.ace && typeof window.ace.edit === "function");
+            })();
+
+            return aceLoaderPromise;
+        }
+
+        async function initAceEditor() {
             const aceElement = document.getElementById("ace-editor");
             const fallbackEditor = document.getElementById("fallback-editor");
+            await ensureAceLoaded();
             if (window.ace && typeof window.ace.edit === "function") {
                 fallbackEditor.style.display = "none";
                 aceElement.style.display = "block";
@@ -1890,6 +2160,9 @@
             wpos_x: null,
             wpos_y: null,
             wpos_z: null,
+            wco_x: null,
+            wco_y: null,
+            wco_z: null,
             analog0_v: null,
             analog1_v: null,
             feed_rate: null,
@@ -1913,6 +2186,29 @@
 
         function generateStatusWidgetId() {
             return `widget-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        }
+
+        function normalizeWifiSettings(raw = {}) {
+            return {
+                mode: String(raw.mode ?? "3"),
+                hostname: String(raw.hostname ?? "fluidnc"),
+                sta_ssid: String(raw.sta_ssid ?? ""),
+                sta_password: String(raw.sta_password ?? ""),
+                sta_ipmode: String(raw.sta_ipmode ?? "0"),
+                sta_ip: String(raw.sta_ip ?? ""),
+                sta_netmask: String(raw.sta_netmask ?? ""),
+                sta_gateway: String(raw.sta_gateway ?? ""),
+                ap_ssid: String(raw.ap_ssid ?? "FluidNC"),
+                ap_password: String(raw.ap_password ?? "12345678"),
+                ap_channel: String(raw.ap_channel ?? "1"),
+                ap_ip: String(raw.ap_ip ?? "192.168.0.1")
+            };
+        }
+
+        function getWifiSettings() {
+            if (!config.settings || typeof config.settings !== "object") config.settings = {};
+            config.settings.wifi = normalizeWifiSettings(config.settings.wifi);
+            return config.settings.wifi;
         }
 
         function createDefaultStatusWidgets() {
@@ -2236,6 +2532,123 @@
             return `${pad}${yamlScalar(value)}`;
         }
 
+        function wifiFieldValue(id) {
+            return document.getElementById(id)?.value?.trim?.() ?? "";
+        }
+
+        function syncWifiSectionVisibility() {
+            const mode = wifiFieldValue("wifi-mode");
+            const staSection = document.getElementById("wifi-sta-section");
+            const apSection = document.getElementById("wifi-ap-section");
+            const staStatic = document.getElementById("wifi-sta-static-grid");
+            const staIpMode = wifiFieldValue("wifi-sta-ipmode");
+
+            if (staSection) staSection.style.display = (mode === "1" || mode === "3") ? "" : "none";
+            if (apSection) apSection.style.display = (mode === "2" || mode === "3") ? "" : "none";
+            if (staStatic) staStatic.style.display = staIpMode === "1" ? "grid" : "none";
+        }
+
+        function fillWifiForm(settings) {
+            const wifi = normalizeWifiSettings(settings);
+            const ids = {
+                "wifi-mode": wifi.mode,
+                "wifi-hostname": wifi.hostname,
+                "wifi-sta-ssid": wifi.sta_ssid,
+                "wifi-sta-password": wifi.sta_password,
+                "wifi-sta-ipmode": wifi.sta_ipmode,
+                "wifi-sta-ip": wifi.sta_ip,
+                "wifi-sta-netmask": wifi.sta_netmask,
+                "wifi-sta-gateway": wifi.sta_gateway,
+                "wifi-ap-ssid": wifi.ap_ssid,
+                "wifi-ap-password": wifi.ap_password,
+                "wifi-ap-channel": wifi.ap_channel,
+                "wifi-ap-ip": wifi.ap_ip
+            };
+            Object.entries(ids).forEach(([id, value]) => {
+                const el = document.getElementById(id);
+                if (el) el.value = value;
+            });
+            syncWifiSectionVisibility();
+        }
+
+        function readWifiForm() {
+            return normalizeWifiSettings({
+                mode: wifiFieldValue("wifi-mode"),
+                hostname: wifiFieldValue("wifi-hostname"),
+                sta_ssid: wifiFieldValue("wifi-sta-ssid"),
+                sta_password: wifiFieldValue("wifi-sta-password"),
+                sta_ipmode: wifiFieldValue("wifi-sta-ipmode"),
+                sta_ip: wifiFieldValue("wifi-sta-ip"),
+                sta_netmask: wifiFieldValue("wifi-sta-netmask"),
+                sta_gateway: wifiFieldValue("wifi-sta-gateway"),
+                ap_ssid: wifiFieldValue("wifi-ap-ssid"),
+                ap_password: wifiFieldValue("wifi-ap-password"),
+                ap_channel: wifiFieldValue("wifi-ap-channel"),
+                ap_ip: wifiFieldValue("wifi-ap-ip")
+            });
+        }
+
+        function openWifiSettings() {
+            fillWifiForm(getWifiSettings());
+            document.getElementById("wifi-editor-modal")?.classList.add("active");
+        }
+
+        function closeWifiSettings() {
+            document.getElementById("wifi-editor-modal")?.classList.remove("active");
+        }
+
+        async function applyWebUiSetting(path, value) {
+            const safePath = String(path || "").trim();
+            if (!safePath) return;
+            const safeValue = String(value ?? "");
+            await sendFluidCommand(`[ESP401]P=${safePath} T=S V=${safeValue}`);
+        }
+
+        async function applyWifiSettings() {
+            const wifi = readWifiForm();
+            const commands = [];
+
+            if (wifi.hostname) commands.push(["Hostname", wifi.hostname]);
+
+            if (wifi.mode === "1" || wifi.mode === "3") {
+                if (!wifi.sta_ssid) throw new Error("Station SSID is required for Station mode");
+                commands.push(["Sta/SSID", wifi.sta_ssid]);
+                commands.push(["Sta/IPMode", wifi.sta_ipmode || "0"]);
+                if (wifi.sta_password) commands.push(["Sta/Password", wifi.sta_password]);
+                if (wifi.sta_ipmode === "1") {
+                    if (!wifi.sta_ip || !wifi.sta_netmask || !wifi.sta_gateway) {
+                        throw new Error("Static Station mode requires IP, netmask, and gateway");
+                    }
+                    commands.push(["Sta/IP", wifi.sta_ip]);
+                    commands.push(["Sta/Netmask", wifi.sta_netmask]);
+                    commands.push(["Sta/Gateway", wifi.sta_gateway]);
+                }
+            }
+
+            if (wifi.mode === "2" || wifi.mode === "3") {
+                if (!wifi.ap_ssid) throw new Error("AP SSID is required for Access Point mode");
+                if (wifi.ap_password && wifi.ap_password.length < 8) {
+                    throw new Error("AP password must be at least 8 characters");
+                }
+                commands.push(["AP/SSID", wifi.ap_ssid]);
+                if (wifi.ap_password) commands.push(["AP/Password", wifi.ap_password]);
+                commands.push(["AP/Channel", wifi.ap_channel || "1"]);
+                if (wifi.ap_ip) commands.push(["AP/IP", wifi.ap_ip]);
+            }
+
+            commands.push(["WiFi/Mode", wifi.mode]);
+
+            for (const [path, value] of commands) {
+                await applyWebUiSetting(path, value);
+            }
+
+            config.settings = config.settings || {};
+            config.settings.wifi = wifi;
+            saveConfig();
+            logConsole("WiFi settings applied. Reconnect to the controller if the network mode changed.", "receive");
+            closeWifiSettings();
+        }
+
         // Global hardware pin map: edit this single object to remap pin headers and axis motor GPIOs.
         const HARDWARE_PIN_MAP = {
             headers: {
@@ -2522,13 +2935,31 @@
             websocketHost: window.location.hostname,
             ws: null,
             reconnectTimer: null,
-            currentPath: "/"
+            currentPath: "/",
+            currentVolume: "flash"
         };
+
+        function currentFileEndpoint() {
+            return fluid.currentVolume === "sd" ? "/upload" : "/files";
+        }
+
+        function currentFileBasePath() {
+            return fluid.currentVolume === "sd" ? "/sd" : "";
+        }
+
+        function currentVolumePath(filename = "") {
+            return `${fluid.currentPath}${filename}`.replace(/\/+/g, "/");
+        }
+
+        let lastStatusAt = 0;
 
         function setConnectionState(connected, stateText = "") {
             const statusEl = document.getElementById("connection-status");
             const hostEl = document.getElementById("connection-host");
             const dotEl = document.querySelector(".status-dot");
+            if (!connected && (Date.now() - lastStatusAt) < 5000) {
+                return;
+            }
             statusEl.textContent = connected ? `Connected${stateText ? ` (${stateText})` : ""}` : "Disconnected";
             hostEl.textContent = window.location.host || window.location.hostname;
             dotEl.style.background = connected ? "var(--success)" : "var(--danger)";
@@ -2551,14 +2982,15 @@
                 const key = (tokens[0] || "").trim().toLowerCase();
                 if (key === "webcommunication") {
                     fluid.websocketPort = (tokens[2] || fluid.websocketPort).trim();
-                    fluid.websocketHost = (tokens[3] || window.location.hostname).trim();
+                    // Always prefer current page host; captive portal pages can spoof this field.
+                    fluid.websocketHost = window.location.hostname;
                 }
             }
         }
 
         function websocketUrl() {
             const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-            const host = fluid.websocketHost || window.location.hostname;
+            const host = window.location.hostname;
             const defaultPort = protocol === "wss" ? "443" : "80";
             if (fluid.websocketPort && fluid.websocketPort !== defaultPort) {
                 return `${protocol}://${host}:${fluid.websocketPort}`;
@@ -2582,12 +3014,33 @@
             });
         }
 
+        function updateWorkCoordinateOffset(x, y, z) {
+            const next = {
+                wco_x: Number.isFinite(x) ? x : telemetry.wco_x,
+                wco_y: Number.isFinite(y) ? y : telemetry.wco_y,
+                wco_z: Number.isFinite(z) ? z : telemetry.wco_z
+            };
+
+            if (Number.isFinite(telemetry.mpos_x) && Number.isFinite(next.wco_x)) {
+                next.wpos_x = telemetry.mpos_x - next.wco_x;
+            }
+            if (Number.isFinite(telemetry.mpos_y) && Number.isFinite(next.wco_y)) {
+                next.wpos_y = telemetry.mpos_y - next.wco_y;
+            }
+            if (Number.isFinite(telemetry.mpos_z) && Number.isFinite(next.wco_z)) {
+                next.wpos_z = telemetry.mpos_z - next.wco_z;
+            }
+
+            updateTelemetry(next);
+        }
+
         function parseStatusMessage(line) {
             if (!line.startsWith("<") || !line.endsWith(">")) return;
             const inner = line.slice(1, -1);
             const fields = inner.split("|");
             if (fields.length > 0) {
                 const machineState = fields[0];
+                lastStatusAt = Date.now();
                 setConnectionState(true, machineState);
                 updateTelemetry({ machine_state: machineState });
             }
@@ -2595,10 +3048,19 @@
             for (const field of fields) {
                 if (field.startsWith("MPos:")) {
                     const values = field.substring(5).split(",");
-                    updateAxisDisplay(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]), "mpos");
+                    const mx = parseFloat(values[0]);
+                    const my = parseFloat(values[1]);
+                    const mz = parseFloat(values[2]);
+                    updateAxisDisplay(mx, my, mz, "mpos");
+                    if (Number.isFinite(telemetry.wco_x) || Number.isFinite(telemetry.wco_y) || Number.isFinite(telemetry.wco_z)) {
+                        updateWorkCoordinateOffset(telemetry.wco_x, telemetry.wco_y, telemetry.wco_z);
+                    }
                 } else if (field.startsWith("WPos:")) {
                     const values = field.substring(5).split(",");
                     updateAxisDisplay(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]), "wpos");
+                } else if (field.startsWith("WCO:")) {
+                    const values = field.substring(4).split(",");
+                    updateWorkCoordinateOffset(parseFloat(values[0]), parseFloat(values[1]), parseFloat(values[2]));
                 } else if (field.startsWith("FS:")) {
                     const values = field.substring(3).split(",");
                     updateTelemetry({
@@ -2623,13 +3085,14 @@
 
             fluid.ws.onopen = () => {
                 setConnectionState(true);
-                sendFluidCommand("?", true).catch(() => {});
             };
             fluid.ws.onclose = () => {
+                fluid.pageId = "";
                 setConnectionState(false);
                 fluid.reconnectTimer = setTimeout(startSocket, 3000);
             };
             fluid.ws.onerror = () => {
+                fluid.pageId = "";
                 setConnectionState(false);
             };
             fluid.ws.onmessage = async (event) => {
@@ -2643,20 +3106,60 @@
                 } else {
                     return;
                 }
-                const parts = msg.split(":");
-                if (parts[0] === "currentID" || parts[0] === "CURRENT_ID") {
-                    fluid.pageId = parts[1] || "";
-                    return;
-                }
-                if (parts[0] === "ERROR") {
-                    logConsole(parts.slice(2).join(":") || "Web error", "error");
-                    return;
-                }
-                parseStatusMessage(msg);
-                if (!msg.startsWith("PING:")) {
-                    logConsole(msg, msg.toLowerCase().includes("error") ? "error" : "receive");
+
+                const lines = msg.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+                for (const line of lines) {
+                    if (line.startsWith("PING")) {
+                        setConnectionState(true);
+                        continue;
+                    }
+
+                    const parts = line.split(":");
+                    const key = (parts[0] || "").trim();
+                    if (key === "currentID" || key === "CURRENT_ID" || key === "activeID" || key === "ACTIVE_ID") {
+                        fluid.pageId = (parts[1] || "").trim();
+                        setConnectionState(true);
+                        continue;
+                    }
+                    if (key === "ERROR") {
+                        logConsole(parts.slice(2).join(":") || "Web error", "error");
+                        continue;
+                    }
+
+                    if (line.startsWith("<") && line.endsWith(">")) {
+                        parseStatusMessage(line);
+                    }
+
+                    if (!line.startsWith("PING")) {
+                        logConsole(line, line.toLowerCase().includes("error") ? "error" : "receive");
+                    }
                 }
             };
+        }
+
+        function socketIsOpen() {
+            return fluid.ws && fluid.ws.readyState === WebSocket.OPEN;
+        }
+
+        function sendWebSocketCommand(command) {
+            if (!command) return false;
+            if (!socketIsOpen()) return false;
+            try {
+                const isRealtimeChar = command.length === 1 && command.charCodeAt(0) < 32;
+                fluid.ws.send(isRealtimeChar || command.endsWith("\n") ? command : `${command}\n`);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function sendRealtimeCommand(command, fallbackSilent = true) {
+            if (!command) return "";
+            logConsole(command, "send");
+            if (sendWebSocketCommand(command)) {
+                return "";
+            }
+            return await sendFluidCommand(command, fallbackSilent);
         }
 
         async function sendFluidCommand(command, silent = false) {
@@ -2664,17 +3167,25 @@
             logConsole(command, "send");
             const endpoint = silent ? "/command_silent" : "/command";
             let url = `${endpoint}?commandText=${encodeURIComponent(command)}`;
-            if (fluid.pageId) url += `&PAGEID=${encodeURIComponent(fluid.pageId)}`;
+            if (fluid.pageId && socketIsOpen()) url += `&PAGEID=${encodeURIComponent(fluid.pageId)}`;
             const response = await fetch(url, { method: "GET" });
             if (!response.ok) {
                 const errorText = await response.text();
                 if ((errorText || "").toLowerCase().includes("websocket dead")) {
+                    fluid.pageId = "";
                     setConnectionState(false);
                     if (!fluid.reconnectTimer) {
                         fluid.reconnectTimer = setTimeout(() => {
                             fluid.reconnectTimer = null;
                             startSocket();
                         }, 200);
+                    }
+                    if (silent) {
+                        const retryUrl = `${endpoint}?commandText=${encodeURIComponent(command)}`;
+                        const retry = await fetch(retryUrl, { method: "GET" });
+                        if (retry.ok) {
+                            return await retry.text();
+                        }
                     }
                 }
                 throw new Error(errorText || `HTTP ${response.status}`);
@@ -2689,6 +3200,9 @@
         async function initFluidNC() {
             setConnectionState(false);
             try {
+                if (window.location.hostname.includes("msftconnecttest.com")) {
+                    logConsole("Captive portal host detected. Open the controller IP/hostname instead of msftconnecttest.com.", "error");
+                }
                 const infoResponse = await fetch("/command?commandText=" + encodeURIComponent("[ESP800]"));
                 if (infoResponse.ok) {
                     const text = await infoResponse.text();
@@ -2699,21 +3213,48 @@
                 logConsole(`Init failed: ${err.message}`, "error");
             }
             startSocket();
+            loadStartupLog();
+        }
+
+        async function fetchCommandText(command, silent = true) {
+            const endpoint = silent ? "/command_silent" : "/command";
+            const response = await fetch(`${endpoint}?commandText=${encodeURIComponent(command)}`, { method: "GET" });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+            return await response.text();
+        }
+
+        async function loadStartupLog() {
+            const candidates = ["$SS", "SS"];
+            for (const command of candidates) {
+                try {
+                    const text = await fetchCommandText(command, false);
+                    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+                    if (!lines.length) continue;
+                    if (lines.some(line => /unknown|invalid|error/i.test(line))) continue;
+                    lines.forEach(line => logConsole(line, "receive"));
+                    return;
+                } catch (_) {
+                    // Try next variant.
+                }
+            }
         }
 
         async function refreshUserOutputVoltages() {
             try {
-                const response = await fetch("/command_silent?commandText=" + encodeURIComponent("[ESP430]json=yes"));
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const raw = await response.text();
-                const parsed = JSON.parse(raw);
-                const a0 = Number(parsed.analog0_v);
-                const a1 = Number(parsed.analog1_v);
+                const raw = await fetchCommandText("[ESP430]", false);
+                const m0 = raw.match(/Analog0:\s*([-+]?\d*\.?\d+)\s*V/i);
+                const m1 = raw.match(/Analog1:\s*([-+]?\d*\.?\d+)\s*V/i);
+                const a0 = m0 ? Number(m0[1]) : NaN;
+                const a1 = m1 ? Number(m1[1]) : NaN;
+
                 updateTelemetry({
                     analog0_v: Number.isFinite(a0) ? a0 : null,
                     analog1_v: Number.isFinite(a1) ? a1 : null
                 });
-            } catch (_) {
+            } catch (err) {
                 updateTelemetry({
                     analog0_v: null,
                     analog1_v: null
@@ -2721,9 +3262,14 @@
             }
         }
 
+        const ENABLE_HTTP_STATUS_POLL = false;
+
         async function refreshRealtimeStatus() {
             try {
-                const response = await fetch("/command_silent?commandText=" + encodeURIComponent("?"));
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 1500);
+                const response = await fetch("/command_silent?commandText=" + encodeURIComponent("?"), { signal: controller.signal });
+                clearTimeout(timeout);
                 if (!response.ok) return;
                 const text = await response.text();
                 text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
@@ -2751,12 +3297,22 @@
             }
         }
 
+        function zeroAxisCommand(axisSpec) {
+            const axes = String(axisSpec || "").toUpperCase();
+            if (!axes) return "";
+            const coords = ["X", "Y", "Z", "A"]
+                .filter(axis => axes.includes(axis))
+                .map(axis => `${axis}0`)
+                .join(" ");
+            return coords ? `G10 L20 P1 ${coords}` : "";
+        }
+
         document.querySelectorAll(".jog-btn[data-dir]").forEach(btn => {
             btn.addEventListener("click", async () => {
                 const move = jogDeltaFromDir(btn.dataset.dir, currentStep);
                 if (!move) return;
                 try {
-                    await sendFluidCommand(`$J=G91 G21 F1000 ${move}`, true);
+                    await sendRealtimeCommand(`$J=G91 G21 F1000 ${move}`);
                 } catch (err) {
                     logConsole(`Jog failed: ${err.message}`, "error");
                 }
@@ -2769,9 +3325,21 @@
                 const dir = btn.dataset.dir === "-" ? -1 : 1;
                 const move = `${axis}${dir < 0 ? "-" : ""}${currentStep}`;
                 try {
-                    await sendFluidCommand(`$J=G91 G21 F600 ${move}`, true);
+                    await sendRealtimeCommand(`$J=G91 G21 F600 ${move}`);
                 } catch (err) {
                     logConsole(`Jog failed: ${err.message}`, "error");
+                }
+            });
+        });
+
+        document.querySelectorAll(".zero-axis-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const command = zeroAxisCommand(btn.dataset.zero);
+                if (!command) return;
+                try {
+                    await sendRealtimeCommand(command, false);
+                } catch (err) {
+                    logConsole(`Zero failed: ${err.message}`, "error");
                 }
             });
         });
@@ -3102,13 +3670,13 @@
             }
         }
 
-                function editFile(filename) {
+                async function editFile(filename) {
             currentFile = filename;
-            currentFilePath = `${fluid.currentPath}${filename}`.replace("//", "/");
+            currentFilePath = `${currentFileBasePath()}${currentVolumePath(filename)}`.replace(/\/+/g, "/");
             document.getElementById("editor-filename").textContent = currentFilePath;
 
             if (!aceEditor) {
-                initAceEditor();
+                await initAceEditor();
             }
 
             fetch(currentFilePath)
@@ -3131,10 +3699,11 @@
             const content = aceEditor.getValue();
             const blob = new Blob([content], { type: "text/plain" });
             const formData = new FormData();
-            formData.append(`${currentFilePath}S`, String(blob.size));
-            formData.append("myfiles[]", blob, currentFilePath);
+            const storagePath = currentVolumePath(currentFile || "");
+            formData.append(`${storagePath}S`, String(blob.size));
+            formData.append("myfiles[]", blob, storagePath);
             try {
-                const response = await fetch("/files", { method: "POST", body: formData });
+                const response = await fetch(currentFileEndpoint(), { method: "POST", body: formData });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 logConsole(`File saved: ${currentFilePath}`, "receive");
                 closeEditor();
@@ -3145,7 +3714,7 @@
         }
 
         async function runFile(filename) {
-            const fullPath = `${fluid.currentPath}${filename}`.replace("//", "/");
+            const fullPath = `${currentFileBasePath()}${fluid.currentPath}${filename}`.replace(/\/+/g, "/");
             try {
                 await sendFluidCommand(`[ESP700]${fullPath}`);
             } catch (err) {
@@ -3163,12 +3732,12 @@
                 if (!files.length) return;
                 const formData = new FormData();
                 for (const file of files) {
-                    const targetPath = `${fluid.currentPath === "/" ? "/" : fluid.currentPath}${file.name}`;
+                    const targetPath = currentVolumePath(file.name);
                     formData.append(`${targetPath}S`, String(file.size));
                     formData.append("myfiles[]", file, targetPath);
                 }
                 try {
-                    const response = await fetch("/files", { method: "POST", body: formData });
+                    const response = await fetch(currentFileEndpoint(), { method: "POST", body: formData });
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     logConsole(`Uploaded ${files.length} file(s)`, "receive");
                     await refreshFiles();
@@ -3190,7 +3759,7 @@
         async function deleteEntry(filename, isDir) {
             if (!confirm(`Delete ${isDir ? "directory" : "file"} '${filename}'?`)) return;
             const action = isDir ? "deletedir" : "delete";
-            const url = `/files?action=${action}&filename=${encodeURIComponent(filename)}&path=${encodeURIComponent(fluid.currentPath)}`;
+            const url = `${currentFileEndpoint()}?action=${action}&filename=${encodeURIComponent(filename)}&path=${encodeURIComponent(fluid.currentPath)}`;
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -3280,12 +3849,13 @@
         }
 
         async function refreshFiles() {
-            const url = `/files?action=list&filename=all&path=${encodeURIComponent(fluid.currentPath)}`;
+            const url = `${currentFileEndpoint()}?action=list&filename=all&path=${encodeURIComponent(fluid.currentPath)}`;
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const json = await response.json();
-                document.getElementById("file-path").value = fluid.currentPath;
+                const volumeLabel = fluid.currentVolume === "sd" ? "SD" : "FLASH";
+                document.getElementById("file-path").value = `${volumeLabel}:${fluid.currentPath}`;
                 renderFileList(json.files || []);
             } catch (err) {
                 logConsole(`File list failed: ${err.message}`, "error");
@@ -3293,7 +3863,7 @@
         }
 
         function openFile(filename) {
-            const fullPath = `${fluid.currentPath === "/" ? "/" : fluid.currentPath}${filename}`;
+            const fullPath = `${currentFileBasePath()}${fluid.currentPath === "/" ? "/" : fluid.currentPath}${filename}`.replace(/\/+/g, "/");
             window.open(fullPath, "_blank");
         }
 // --- Draggable Logic Implementation ---
@@ -3381,6 +3951,31 @@
             input.click();
         };
 
+        window.openWifiSettings = openWifiSettings;
+
+        function initializeWifiEditor() {
+            const modal = document.getElementById("wifi-editor-modal");
+            const modeEl = document.getElementById("wifi-mode");
+            const staModeEl = document.getElementById("wifi-sta-ipmode");
+            const closeBtn = document.getElementById("close-wifi-editor");
+            const applyBtn = document.getElementById("apply-wifi-settings");
+
+            modeEl?.addEventListener("change", syncWifiSectionVisibility);
+            staModeEl?.addEventListener("change", syncWifiSectionVisibility);
+            closeBtn?.addEventListener("click", closeWifiSettings);
+            applyBtn?.addEventListener("click", async () => {
+                try {
+                    await applyWifiSettings();
+                } catch (err) {
+                    logConsole(`WiFi update failed: ${err.message}`, "error");
+                }
+            });
+            modal?.addEventListener("click", (event) => {
+                if (event.target === modal) closeWifiSettings();
+            });
+            fillWifiForm(getWifiSettings());
+        }
+
         function initializeStatusWidgetEditor() {
             const openBtn = document.getElementById("open-status-editor");
             const closeBtn = document.getElementById("close-status-editor");
@@ -3445,11 +4040,34 @@
             });
 
             document.getElementById("estop-btn").addEventListener("click", async () => {
-                if (!confirm("Send soft reset (E-Stop)?")) return;
                 try {
-                    await sendFluidCommand("\x18", true);
+                    await sendRealtimeCommand("\x18", false);
                 } catch (err) {
                     logConsole(`E-Stop failed: ${err.message}`, "error");
+                }
+            });
+
+            document.getElementById("feedhold-btn").addEventListener("click", async () => {
+                try {
+                    await sendRealtimeCommand("!", false);
+                } catch (err) {
+                    logConsole(`Feed hold failed: ${err.message}`, "error");
+                }
+            });
+
+            document.getElementById("resume-btn").addEventListener("click", async () => {
+                try {
+                    await sendRealtimeCommand("~", false);
+                } catch (err) {
+                    logConsole(`Resume failed: ${err.message}`, "error");
+                }
+            });
+
+            document.getElementById("unlock-btn").addEventListener("click", async () => {
+                try {
+                    await sendRealtimeCommand("$X", false);
+                } catch (err) {
+                    logConsole(`Unlock failed: ${err.message}`, "error");
                 }
             });
 
@@ -3468,13 +4086,26 @@
                 toolbar.appendChild(configBtns);
             }
 
+            const fileVolume = document.getElementById("file-volume");
+            if (fileVolume) {
+                fileVolume.value = fluid.currentVolume;
+                fileVolume.addEventListener("change", () => {
+                    fluid.currentVolume = fileVolume.value;
+                    fluid.currentPath = "/";
+                    refreshFiles();
+                });
+            }
+
             initializeStatusWidgetEditor();
+            initializeWifiEditor();
             renderStatusWidgets();
             initFluidNC();
             refreshFiles();
-            refreshRealtimeStatus();
             refreshUserOutputVoltages();
-            setInterval(refreshRealtimeStatus, 1500);
+            if (ENABLE_HTTP_STATUS_POLL) {
+                refreshRealtimeStatus();
+                setInterval(refreshRealtimeStatus, 1500);
+            }
             setInterval(refreshUserOutputVoltages, 2000);
         });
     </script>
