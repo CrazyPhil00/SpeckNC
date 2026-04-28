@@ -1,6 +1,6 @@
 board: None
 name: SpeckNC V0.2
-meta:
+meta: ""
 stepping:
   engine: RMT
   idle_ms: 255
@@ -8,83 +8,93 @@ stepping:
   dir_delay_us: 0
   disable_delay_us: 0
   segments: 12
-
-i2c0:
-  sda_pin: gpio.2
-  scl_pin: gpio.1
-
 spi:
   miso_pin: gpio.13
   mosi_pin: gpio.11
   sck_pin: gpio.12
-
 sdcard:
   cs_pin: gpio.10
   card_detect_pin: NO_PIN
   frequency_hz: 8000000
-
 kinematics:
   Cartesian:
-
+    {}
 axes:
   shared_stepper_disable_pin: NO_PIN
   shared_stepper_reset_pin: NO_PIN
   homing_runs: 2
   x:
-    steps_per_mm: 319.47
-    max_rate_mm_per_min: 1000.000000
-    acceleration_mm_per_sec2: 150.000000
-    max_travel_mm: 1000.000000
+    steps_per_mm: 200
+    max_rate_mm_per_min: 2000
+    acceleration_mm_per_sec2: 200
+    max_travel_mm: 300
     soft_limits: false
     motor0:
       limit_neg_pin: NO_PIN
       limit_pos_pin: NO_PIN
       limit_all_pin: NO_PIN
       hard_limits: false
-      pulloff_mm: 1.000000
+      pulloff_mm: 1
       standard_stepper:
         step_pin: gpio.4
         direction_pin: gpio.5
         disable_pin: NO_PIN
       null_motor:
-
+        {}
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 2000
+      feed_mm_per_min: 1000
   y:
-    steps_per_mm: 319.47
-    max_rate_mm_per_min: 1000.000000
-    acceleration_mm_per_sec2: 150.000000
-    max_travel_mm: 1000.000000
+    steps_per_mm: 300
+    max_rate_mm_per_min: 2000
+    acceleration_mm_per_sec2: 200
+    max_travel_mm: 300
     soft_limits: false
     motor0:
       limit_neg_pin: NO_PIN
       limit_pos_pin: NO_PIN
       limit_all_pin: NO_PIN
       hard_limits: false
-      pulloff_mm: 1.000000
+      pulloff_mm: 1
       standard_stepper:
         step_pin: gpio.6
         direction_pin: gpio.7
         disable_pin: gpio.9
       null_motor:
-
+        {}
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 2000
+      feed_mm_per_min: 1000
   z:
-    steps_per_mm: 320.000000
-    max_rate_mm_per_min: 1000.000000
-    acceleration_mm_per_sec2: 75.000000
-    max_travel_mm: 1000.000000
+    steps_per_mm: 320
+    max_rate_mm_per_min: 2000
+    acceleration_mm_per_sec2: 200
+    max_travel_mm: 300
     soft_limits: false
     motor0:
       limit_neg_pin: NO_PIN
       limit_pos_pin: NO_PIN
       limit_all_pin: NO_PIN
       hard_limits: false
-      pulloff_mm: 1.000000
+      pulloff_mm: 1
       standard_stepper:
         step_pin: gpio.15
-        direction_pin: gpio.16:low
+        direction_pin: gpio.16
         disable_pin: gpio.14
-
       null_motor:
-
+        {}
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 2000
+      feed_mm_per_min: 1000
 control:
   safety_door_pin: NO_PIN
   reset_pin: NO_PIN
@@ -95,43 +105,37 @@ control:
   macro2_pin: NO_PIN
   macro3_pin: NO_PIN
   fault_pin: NO_PIN
-  estop_pin: NO_PIN
-
+  estop_pin: "gpio.3:pu"
 coolant:
   flood_pin: NO_PIN
   mist_pin: NO_PIN
   delay_ms: 0
-
 probe:
   pin: NO_PIN
   toolsetter_pin: NO_PIN
   check_mode_start: true
   hard_stop: false
-
 macros:
-  startup_line0:
-  startup_line1:
-  Macro0:
-  Macro1:
-  Macro2:
-  Macro3:
-  after_homing:
-  after_reset:
-  after_unlock:
-
+  startup_line0: ""
+  startup_line1: ""
+  Macro0: ""
+  Macro1: ""
+  Macro2: ""
+  Macro3: ""
+  after_homing: ""
+  after_reset: ""
+  after_unlock: ""
 start:
   must_home: false
   deactivate_parking: false
   check_limits: true
-
 parking:
   enable: false
   axis: Z
-  target_mpos_mm: -5.000000
-  rate_mm_per_min: 800.000000
-  pullout_distance_mm: 5.000000
-  pullout_rate_mm_per_min: 250.000000
-
+  target_mpos_mm: -5
+  rate_mm_per_min: 800
+  pullout_distance_mm: 5
+  pullout_rate_mm_per_min: 250
 user_outputs:
   analog0_pin: NO_PIN
   analog1_pin: NO_PIN
@@ -141,46 +145,29 @@ user_outputs:
   analog1_hz: 5000
   analog2_hz: 5000
   analog3_hz: 5000
-  digital0_pin: gpio.39
-  digital1_pin: gpio.38
+  digital0_pin: NO_PIN
+  digital1_pin: NO_PIN
   digital2_pin: NO_PIN
   digital3_pin: NO_PIN
   digital4_pin: NO_PIN
   digital5_pin: NO_PIN
   digital6_pin: NO_PIN
   digital7_pin: NO_PIN
-
-extenders:
-  ads1115_0: # IO
-    address: 0x48
-    pga: 2
-    data_rate: 4
-    continuous_mode: false
-# Funkt nit :-(
-#  ads1115_1: # HALL EFFECT SENSORS
-#    address: 0x49
-#    pga: 2
-#    data_rate: 4
-#    continuous_mode: false
-
-
-
 user_inputs:
-  analog0_pin: ads1115_0.0
-  analog1_pin: ads1115_0.1
+  analog0_pin: NO_PIN
+  analog1_pin: NO_PIN
   analog2_pin: NO_PIN
   analog3_pin: NO_PIN
-  digital0_pin: gpio.48
-  digital1_pin: gpio.47
+  digital0_pin: NO_PIN
+  digital1_pin: NO_PIN
   digital2_pin: NO_PIN
   digital3_pin: NO_PIN
   digital4_pin: NO_PIN
   digital5_pin: NO_PIN
   digital6_pin: NO_PIN
   digital7_pin: NO_PIN
-
-arc_tolerance_mm: 0.002000
-junction_deviation_mm: 0.010000
+arc_tolerance_mm: 0.002
+junction_deviation_mm: 0.01
 verbose_errors: true
 report_inches: false
 enable_parking_override_control: false

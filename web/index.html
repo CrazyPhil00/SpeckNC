@@ -372,6 +372,11 @@
             overflow-y: auto;
         }
 
+        .macro-card {
+            position: relative;
+            min-height: 96px;
+        }
+
         .macro-btn {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
@@ -384,11 +389,41 @@
             display: flex;
             flex-direction: column;
             gap: 0.25rem;
+            width: 100%;
+            min-height: 96px;
         }
 
         .macro-btn:hover {
             background: var(--bg-hover);
             border-color: var(--accent-primary);
+        }
+
+        .macro-btn.active {
+            background: rgba(40, 167, 69, 0.22);
+            border-color: var(--success);
+        }
+
+        .macro-remove-btn {
+            position: absolute;
+            top: 0.45rem;
+            right: 0.45rem;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .macro-remove-btn.btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .macro-remove-btn.btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
         }
 
         .macro-name {
@@ -398,6 +433,15 @@
         .macro-desc {
             font-size: 0.8rem;
             color: var(--text-secondary);
+        }
+
+        .macro-empty {
+            grid-column: 1 / -1;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 1rem;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
         }
 
         /* Info Panels */
@@ -714,6 +758,10 @@
             fill: rgba(70, 130, 210, 0.5);
             stroke: rgba(70, 130, 210, 1.0);
             stroke-width: 4px;
+        }
+
+        .hotspot-utility {
+            fill: rgba(70, 130, 210, 0.08);
         }
 
         .highlight-overlay {
@@ -1402,11 +1450,11 @@
                             <button class="btn btn-danger machine-action-btn" id="estop-btn">
                                 <i class="fas fa-stop"></i> E-Stop
                             </button>
-                            <button class="btn btn-secondary machine-action-btn" id="feedhold-btn">
-                                <i class="fas fa-pause"></i> Feed Hold
+                            <button class="btn btn-secondary machine-action-btn" id="pause-program-btn">
+                                <i class="fas fa-pause"></i> Pause Program
                             </button>
-                            <button class="btn btn-secondary machine-action-btn" id="resume-btn">
-                                <i class="fas fa-play"></i> Resume
+                            <button class="btn btn-secondary machine-action-btn" id="resume-program-btn">
+                                <i class="fas fa-play"></i> Resume Program
                             </button>
                             <button class="btn btn-secondary machine-action-btn" id="unlock-btn" style="grid-column: 1 / -1;">
                                 <i class="fas fa-unlock"></i> Unlock / Clear Alarm
@@ -1440,29 +1488,12 @@
                     <div class="panel macro-container">
                         <div class="panel-header">
                             <span><i class="fas fa-magic"></i> Macros</span>
-                            <button class="btn btn-secondary" style="padding: 0.5rem 1rem;">
+                            <button class="btn btn-secondary" id="add-dashboard-macro" style="padding: 0.5rem 1rem;">
                                 <i class="fas fa-plus"></i> Add
                             </button>
                         </div>
                         
-                        <div class="macro-list">
-                            <button class="macro-btn" onclick="runMacro('probe-z')">
-                                <span class="macro-name">Probe Z</span>
-                                <span class="macro-desc">Auto Z-axis probing</span>
-                            </button>
-                            <button class="macro-btn" onclick="runMacro('park')">
-                                <span class="macro-name">Park Position</span>
-                                <span class="macro-desc">Move to safe position</span>
-                            </button>
-                            <button class="macro-btn" onclick="runMacro('spindle-warmup')">
-                                <span class="macro-name">Spindle Warmup</span>
-                                <span class="macro-desc">Warmup routine</span>
-                            </button>
-                            <button class="macro-btn" onclick="runMacro('tool-change')">
-                                <span class="macro-name">Tool Change</span>
-                                <span class="macro-desc">Automated tool change</span>
-                            </button>
-                        </div>
+                        <div class="macro-list" id="macro-list"></div>
                     </div>
 
                     <!-- Info Panel -->
@@ -1484,8 +1515,11 @@
                     <button class="btn" onclick="updateConfigYaml()">
                         <i class="fas fa-file-code"></i> Update Config YAML
                     </button>
-                    <button class="btn btn-success" onclick="openWifiSettings()">
-                        <i class="fas fa-microchip"></i> ESP32 WiFi
+                    <button class="btn btn-secondary" onclick="downloadGeneratedConfigYaml()">
+                        <i class="fas fa-download"></i> Download Generated YAML
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadRawPinConfig()">
+                        <i class="fas fa-bug"></i> Download Raw Pin Data
                     </button>
                 </div>
                 <div class="pin-config-wrapper">
@@ -1505,8 +1539,12 @@
                                   data-terminal-type="input" data-terminal-name="INPUT 3"></rect>
                             <rect id="input4" class="hotspot" x="882" y="15" width="52" height="90" 
                                   data-terminal-type="input" data-terminal-name="INPUT 4"></rect>
-                     
-                            
+
+                            <!-- ESP32 WiFi -->
+                            <rect id="wifi-module" class="hotspot hotspot-utility" x="1120" y="88" width="230" height="155"
+                                  data-terminal-type="utility" data-terminal-name="ESP32 WiFi"></rect>
+                      
+                             
                             <!-- Relay Terminal (Bottom Left with 3 smaller terminals) -->
                             <rect id="relay1" class="hotspot" x="509" y="467" width="67" height="55"
                                   data-terminal-type="relay" data-terminal-name="RELAY 1"></rect>
@@ -1572,10 +1610,12 @@
                                     <option value="estop">E-Stop</option>
                                     <option value="probe">Probe</option>
                                     <option value="door">Door Switch</option>
+                                    <option value="pause">Pause Program</option>
+                                    <option value="resume">Resume Program</option>
                                     <option value="gcode">G-code Trigger</option>
                                 </select>
                             </div>
-                            <div class="config-item sub-options">
+                            <div class="config-item sub-options input-limit-option">
                                 <label>Associated Axis</label>
                                 <div class="radio-group">
                                     <label><input type="radio" name="input-axis" value="X" checked> X</label>
@@ -1584,7 +1624,7 @@
                                     <label><input type="radio" name="input-axis" value="A"> A</label>
                                 </div>
                             </div>
-                            <div class="config-item sub-options">
+                            <div class="config-item sub-options input-limit-option">
                                 <label>Direction</label>
                                 <div class="radio-group">
                                     <label><input type="radio" name="input-direction" value="Min" checked> Min</label>
@@ -1610,19 +1650,24 @@
                                 </label>
                             </div>
                             <div class="config-item">
-                                <label>Function</label>
-                                <select id="relay-function" name="relay-function">
-                                    <option>Spindle Control</option>
-                                    <option>Coolant</option>
-                                    <option>Vacuum</option>
-                                    <option>Mist</option>
-                                    <option>Flood</option>
-                                    <option>Custom Output</option>
+                                <label>On Macro</label>
+                                <select id="relay-on-macro" name="relay-on-macro">
+                                    <option value="" selected>None</option>
+                                    <option value="0">Macro0</option>
+                                    <option value="1">Macro1</option>
+                                    <option value="2">Macro2</option>
+                                    <option value="3">Macro3</option>
                                 </select>
                             </div>
                             <div class="config-item">
-                                <label>Max Load (A)</label>
-                                <input type="number" value="5" min="1" max="10" id="relay-max-load" name="relay-max-load">
+                                <label>Off Macro</label>
+                                <select id="relay-off-macro" name="relay-off-macro">
+                                    <option value="" selected>None</option>
+                                    <option value="0">Macro0</option>
+                                    <option value="1">Macro1</option>
+                                    <option value="2">Macro2</option>
+                                    <option value="3">Macro3</option>
+                                </select>
                             </div>
                         </div>
 
@@ -1646,7 +1691,7 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
-                                <div class="config-item">
+                                <div class="config-item axis-stepper-setting">
                                     <label>Select Axis ID</label>
                                     <div class="axis-selector">
                                         <label><input type="radio" name="axis" value="X" checked> X</label>
@@ -1655,13 +1700,33 @@
                                         <label><input type="radio" name="axis" value="A"> A</label>
                                     </div>
                                 </div>
-                                <div class="config-item">
+                                <div class="config-item axis-stepper-setting">
                                     <label>Max Speed (mm/min)</label>
                                     <input type="number" value="2000" min="100" max="10000" id="axis-speed">
                                 </div>
                                 <div class="config-item">
                                     <label>Acceleration (mm/s²)</label>
                                     <input type="number" value="200" min="10" max="1000" id="axis-accel">
+                                </div>
+                                <div class="axis-gpio-options" style="display: none;">
+                                    <div class="config-item">
+                                        <label id="axis-step-role-label">Step Pin</label>
+                                        <select id="axis-step-role" name="axis-step-role">
+                                            <option value="unused" selected>Unused</option>
+                                            <option value="input">Digital Input</option>
+                                            <option value="output">Digital Output</option>
+                                            <option value="spindle">Spindle PWM</option>
+                                        </select>
+                                    </div>
+                                    <div class="config-item">
+                                        <label id="axis-dir-role-label">Dir Pin</label>
+                                        <select id="axis-dir-role" name="axis-dir-role">
+                                            <option value="unused" selected>Unused</option>
+                                            <option value="input">Digital Input</option>
+                                            <option value="output">Digital Output</option>
+                                            <option value="spindle">Spindle PWM</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1852,6 +1917,31 @@
                     <div class="config-item">
                         <label for="status-widget-decimals">Decimals (number sources)</label>
                         <input type="number" id="status-widget-decimals" min="0" max="6" step="1" value="3">
+                    </div>
+                    <div class="config-item" id="status-widget-map-enabled-row">
+                        <label>Map Function</label>
+                        <label class="switch">
+                            <input type="checkbox" id="status-widget-map-enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="status-widget-map-fields">
+                        <div class="config-item">
+                            <label for="status-widget-map-input-min">Input Min</label>
+                            <input type="number" id="status-widget-map-input-min" step="any" value="0">
+                        </div>
+                        <div class="config-item">
+                            <label for="status-widget-map-input-max">Input Max</label>
+                            <input type="number" id="status-widget-map-input-max" step="any" value="1">
+                        </div>
+                        <div class="config-item">
+                            <label for="status-widget-map-output-min">Output Min</label>
+                            <input type="number" id="status-widget-map-output-min" step="any" value="0">
+                        </div>
+                        <div class="config-item">
+                            <label for="status-widget-map-output-max">Output Max</label>
+                            <input type="number" id="status-widget-map-output-max" step="any" value="100">
+                        </div>
                     </div>
                     <div class="config-item">
                         <label for="status-widget-tone">Color Style</label>
@@ -2139,6 +2229,8 @@
             { key: "wpos_z", label: "Work Z", type: "number" },
             { key: "analog0_v", label: "Analog0 Voltage", type: "number" },
             { key: "analog1_v", label: "Analog1 Voltage", type: "number" },
+            { key: "analog2_v", label: "Analog2 Voltage", type: "number" },
+            { key: "analog3_v", label: "Analog3 Voltage", type: "number" },
             { key: "feed_rate", label: "Feed Rate", type: "number" },
             { key: "spindle_rpm", label: "Spindle RPM", type: "number" },
             { key: "planner_buffer", label: "Planner Buffer", type: "number" },
@@ -2165,6 +2257,8 @@
             wco_z: null,
             analog0_v: null,
             analog1_v: null,
+            analog2_v: null,
+            analog3_v: null,
             feed_rate: null,
             spindle_rpm: null,
             planner_buffer: null,
@@ -2179,7 +2273,9 @@
             { label: "Y Position", source: "mpos_y", unit: "mm", decimals: 3, tone: "default", live: true, manualValue: "0.000" },
             { label: "Z Position", source: "mpos_z", unit: "mm", decimals: 3, tone: "default", live: true, manualValue: "0.000" },
             { label: "Analog0", source: "analog0_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" },
-            { label: "Analog1", source: "analog1_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" }
+            { label: "Analog1", source: "analog1_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" },
+            { label: "Analog2", source: "analog2_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" },
+            { label: "Analog3", source: "analog3_v", unit: "V", decimals: 3, tone: "info", live: true, manualValue: "--" }
         ];
 
         let selectedStatusWidgetId = null;
@@ -2227,8 +2323,137 @@
                 decimals: Math.max(0, Math.min(6, Number(widget?.decimals) || 0)),
                 tone: ["default", "info", "success", "warning", "danger"].includes(widget?.tone) ? widget.tone : "default",
                 live: widget?.live !== false,
-                manualValue: String(widget?.manualValue || "").slice(0, 30)
+                manualValue: String(widget?.manualValue || "").slice(0, 30),
+                mapEnabled: widget?.mapEnabled === true,
+                mapInputMin: Number.isFinite(Number(widget?.mapInputMin)) ? Number(widget.mapInputMin) : 0,
+                mapInputMax: Number.isFinite(Number(widget?.mapInputMax)) ? Number(widget.mapInputMax) : 1,
+                mapOutputMin: Number.isFinite(Number(widget?.mapOutputMin)) ? Number(widget.mapOutputMin) : 0,
+                mapOutputMax: Number.isFinite(Number(widget?.mapOutputMax)) ? Number(widget.mapOutputMax) : 100
             };
+        }
+
+        function generateDashboardMacroId() {
+            return `macro-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function normalizeDashboardMacro(entry) {
+            const macroIndex = Math.max(0, Math.min(3, parseInt(entry?.macroIndex, 10) || 0));
+            const outputIndex = Math.max(0, Math.min(3, parseInt(entry?.outputIndex, 10) || 0));
+            const mode = entry?.mode === "toggle" ? "toggle" : "macro";
+            return {
+                id: entry?.id || generateDashboardMacroId(),
+                label: String(entry?.label || (mode === "toggle" ? `Output P${outputIndex}` : `Macro${macroIndex}`)).slice(0, 40),
+                mode,
+                macroIndex,
+                outputIndex,
+                state: mode === "toggle" ? entry?.state === true : false
+            };
+        }
+
+        function getDashboardMacros() {
+            if (!config.settings || typeof config.settings !== "object") config.settings = {};
+            if (!Array.isArray(config.settings.dashboardMacros)) {
+                config.settings.dashboardMacros = [];
+                saveConfig();
+            }
+            config.settings.dashboardMacros = config.settings.dashboardMacros.map(normalizeDashboardMacro);
+            return config.settings.dashboardMacros;
+        }
+
+        function renderDashboardMacros() {
+            const listEl = document.getElementById("macro-list");
+            if (!listEl) return;
+            const macros = getDashboardMacros();
+            if (!macros.length) {
+                listEl.innerHTML = `<div class="macro-empty">No dashboard macros configured.</div>`;
+                return;
+            }
+            listEl.innerHTML = macros.map(entry => `
+                <div class="macro-card">
+                    <button class="macro-btn ${entry.mode === "toggle" && entry.state ? "active" : ""}" data-macro-id="${entry.id}">
+                        <span class="macro-name">${entry.label}</span>
+                        <span class="macro-desc">${entry.mode === "toggle" ? `Toggles Output P${entry.outputIndex}` : `Runs Macro${entry.macroIndex}`}</span>
+                    </button>
+                    <button class="btn btn-danger macro-remove-btn" data-remove-macro-id="${entry.id}" title="Remove macro">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join("");
+
+            listEl.querySelectorAll("[data-macro-id]").forEach(button => {
+                button.addEventListener("click", async () => {
+                    const entry = macros.find(item => item.id === button.dataset.macroId);
+                    if (!entry) return;
+                    if (entry.mode === "toggle") {
+                        await toggleDashboardMacro(entry.id);
+                        return;
+                    }
+                    await runMacro(entry.macroIndex);
+                });
+            });
+
+            listEl.querySelectorAll("[data-remove-macro-id]").forEach(button => {
+                button.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    removeDashboardMacro(button.dataset.removeMacroId);
+                });
+            });
+        }
+
+        function addDashboardMacro() {
+            const modeInput = (prompt("Button type: 'macro' or 'toggle'", "macro") || "").trim().toLowerCase();
+            const mode = modeInput === "toggle" ? "toggle" : "macro";
+            const label = (prompt("Macro label", "") || "").trim();
+            if (!label) return;
+            const macros = getDashboardMacros();
+            if (mode === "toggle") {
+                const outputInput = (prompt("Relay output number P(0-3)", "0") || "").trim();
+                const outputIndex = parseInt(outputInput, 10);
+                if (!Number.isInteger(outputIndex) || outputIndex < 0 || outputIndex > 3) {
+                    logConsole("Relay output must be a number from 0 to 3", "error");
+                    return;
+                }
+                macros.push(normalizeDashboardMacro({ label, mode, outputIndex, state: false }));
+            } else {
+                const slotInput = (prompt("Macro slot (0-3)", "0") || "").trim();
+                const macroIndex = parseInt(slotInput, 10);
+                if (!Number.isInteger(macroIndex) || macroIndex < 0 || macroIndex > 3) {
+                    logConsole("Macro slot must be a number from 0 to 3", "error");
+                    return;
+                }
+                macros.push(normalizeDashboardMacro({ label, mode, macroIndex }));
+            }
+            config.settings.dashboardMacros = macros;
+            saveConfig();
+            renderDashboardMacros();
+        }
+
+        function removeDashboardMacro(id) {
+            const macros = getDashboardMacros();
+            const entry = macros.find(item => item.id === id);
+            if (!entry) return;
+            if (!confirm(`Remove dashboard macro '${entry.label}'?`)) return;
+            config.settings.dashboardMacros = macros.filter(item => item.id !== id);
+            saveConfig();
+            renderDashboardMacros();
+        }
+
+        async function toggleDashboardMacro(id) {
+            const macros = getDashboardMacros();
+            const index = macros.findIndex(item => item.id === id);
+            if (index < 0) return;
+            const entry = macros[index];
+            const nextState = !entry.state;
+            const command = nextState ? `M64 P${entry.outputIndex}` : `M65 P${entry.outputIndex}`;
+            try {
+                await sendFluidCommand(command);
+                macros[index] = { ...entry, state: nextState };
+                config.settings.dashboardMacros = macros;
+                saveConfig();
+                renderDashboardMacros();
+            } catch (err) {
+                logConsole(`Toggle failed: ${err.message}`, "error");
+            }
         }
 
         function getStatusWidgets() {
@@ -2258,7 +2483,19 @@
 
             if (sourceMeta.type === "number") {
                 const n = Number(value);
-                if (Number.isFinite(n)) value = n.toFixed(widget.decimals);
+                if (Number.isFinite(n)) {
+                    let mapped = n;
+                    if (widget.mapEnabled) {
+                        const inMin = Number(widget.mapInputMin);
+                        const inMax = Number(widget.mapInputMax);
+                        const outMin = Number(widget.mapOutputMin);
+                        const outMax = Number(widget.mapOutputMax);
+                        if (Number.isFinite(inMin) && Number.isFinite(inMax) && Number.isFinite(outMin) && Number.isFinite(outMax) && inMax !== inMin) {
+                            mapped = ((n - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+                        }
+                    }
+                    value = mapped.toFixed(widget.decimals);
+                }
             } else {
                 value = String(value);
             }
@@ -2300,6 +2537,18 @@
             selectEl.innerHTML = STATUS_SOURCES.map(src => (
                 `<option value="${src.key}" ${src.key === selectedKey ? "selected" : ""}>${src.label}</option>`
             )).join("");
+        }
+
+        function syncStatusWidgetMapUi() {
+            const sourceEl = document.getElementById("status-widget-source");
+            const mapEnabledEl = document.getElementById("status-widget-map-enabled");
+            const mapEnabledRow = document.getElementById("status-widget-map-enabled-row");
+            const mapFields = document.getElementById("status-widget-map-fields");
+            if (!sourceEl || !mapEnabledEl || !mapEnabledRow || !mapFields) return;
+            const sourceMeta = STATUS_SOURCE_MAP[sourceEl.value] || STATUS_SOURCE_MAP.machine_state;
+            const isNumeric = sourceMeta.type === "number";
+            mapEnabledRow.style.display = isNumeric ? "" : "none";
+            mapFields.style.display = isNumeric && mapEnabledEl.checked ? "" : "none";
         }
 
         function renderStatusWidgetList() {
@@ -2362,20 +2611,31 @@
             const sourceEl = document.getElementById("status-widget-source");
             const unitEl = document.getElementById("status-widget-unit");
             const decimalsEl = document.getElementById("status-widget-decimals");
+            const mapEnabledEl = document.getElementById("status-widget-map-enabled");
+            const mapInputMinEl = document.getElementById("status-widget-map-input-min");
+            const mapInputMaxEl = document.getElementById("status-widget-map-input-max");
+            const mapOutputMinEl = document.getElementById("status-widget-map-output-min");
+            const mapOutputMaxEl = document.getElementById("status-widget-map-output-max");
             const toneEl = document.getElementById("status-widget-tone");
             const liveEl = document.getElementById("status-widget-live");
             const manualEl = document.getElementById("status-widget-manual");
-            if (!labelEl || !sourceEl || !unitEl || !decimalsEl || !toneEl || !liveEl || !manualEl) return;
+            if (!labelEl || !sourceEl || !unitEl || !decimalsEl || !mapEnabledEl || !mapInputMinEl || !mapInputMaxEl || !mapOutputMinEl || !mapOutputMaxEl || !toneEl || !liveEl || !manualEl) return;
 
             if (!widget) {
                 labelEl.value = "";
                 renderStatusSourceOptions(sourceEl, "machine_state");
                 unitEl.value = "";
                 decimalsEl.value = 0;
+                mapEnabledEl.checked = false;
+                mapInputMinEl.value = 0;
+                mapInputMaxEl.value = 1;
+                mapOutputMinEl.value = 0;
+                mapOutputMaxEl.value = 100;
                 toneEl.value = "default";
                 liveEl.checked = true;
                 manualEl.value = "";
                 manualEl.disabled = true;
+                syncStatusWidgetMapUi();
                 return;
             }
 
@@ -2383,10 +2643,16 @@
             renderStatusSourceOptions(sourceEl, widget.source);
             unitEl.value = widget.unit;
             decimalsEl.value = widget.decimals;
+            mapEnabledEl.checked = widget.mapEnabled;
+            mapInputMinEl.value = widget.mapInputMin;
+            mapInputMaxEl.value = widget.mapInputMax;
+            mapOutputMinEl.value = widget.mapOutputMin;
+            mapOutputMaxEl.value = widget.mapOutputMax;
             toneEl.value = widget.tone;
             liveEl.checked = widget.live;
             manualEl.value = widget.manualValue;
             manualEl.disabled = widget.live;
+            syncStatusWidgetMapUi();
         }
 
         function mutateSelectedStatusWidget(mutator) {
@@ -2434,6 +2700,11 @@
                 source: "machine_state",
                 unit: "",
                 decimals: 0,
+                mapEnabled: false,
+                mapInputMin: 0,
+                mapInputMax: 1,
+                mapOutputMin: 0,
+                mapOutputMax: 100,
                 tone: "default",
                 live: true,
                 manualValue: ""
@@ -2652,19 +2923,20 @@
         // Global hardware pin map: edit this single object to remap pin headers and axis motor GPIOs.
         const HARDWARE_PIN_MAP = {
             headers: {
-                input1: "gpio.48",
-                input2: "gpio.47",
-                input3: "NO_PIN",
-                input4: "NO_PIN",
-                relay1: "gpio.39",
+                input1: "gpio.41",
+                input2: "gpio.42",
+                input3: "gpio.43",
+                input4: "gpio.40",
+                relay1: "NO_PIN",
                 relay2: "gpio.38",
-                relay3: "NO_PIN",
+                relay3: "gpio.39",
                 output1: "gpio.40"
             },
             axes: {
-                x: { step_pin: "gpio.4", direction_pin: "gpio.5", disable_pin: "NO_PIN" },
-                y: { step_pin: "gpio.6", direction_pin: "gpio.7", disable_pin: "gpio.9" },
-                z: { step_pin: "gpio.15", direction_pin: "gpio.16:low", disable_pin: "gpio.14" }
+                x: { step_pin: "gpio.4", direction_pin: "gpio.5", disable_pin: "NO_PIN", io_pin: "gpio.3", adc_pin: "ads1115_1.0" },
+                y: { step_pin: "gpio.6", direction_pin: "gpio.7", disable_pin: "NO_PIN", io_pin: "gpio.9", adc_pin: "ads1115_1.1" },
+                z: { step_pin: "gpio.15", direction_pin: "gpio.16", disable_pin: "NO_PIN", io_pin: "gpio.14", adc_pin: "ads1115_1.2" },
+                a: { step_pin: "gpio.17", direction_pin: "gpio.18", disable_pin: "NO_PIN", io_pin: "gpio.21", adc_pin: "ads1115_1.3" }
             },
             axis_headers: {
                 "axis1": "x",
@@ -2697,6 +2969,20 @@
                 dir_delay_us: 0,
                 disable_delay_us: 0,
                 segments: 12
+            },
+            extenders: {
+                ads1115_0: {
+                    address: "0x48",
+                    pga: 2,
+                    data_rate: 4,
+                    continuous_mode: false
+                },
+                ads1115_1: {
+                    address: "0x49",
+                    pga: 2,
+                    data_rate: 4,
+                    continuous_mode: false
+                }
             },
             spi: {
                 miso_pin: HARDWARE_PIN_MAP.spi.miso_pin,
@@ -2814,24 +3100,132 @@
             axis.motor0.hard_limits = true;
         }
 
+        function stripPinModifiers(pinName) {
+            const raw = String(pinName || "NO_PIN");
+            return raw.split(":")[0] || "NO_PIN";
+        }
+
+        function allocateUserGpioPin(target, pinName) {
+            const slots = ["digital4_pin", "digital5_pin", "digital6_pin", "digital7_pin"];
+            const normalizedPin = stripPinModifiers(pinName);
+            const existingSlot = slots.find(slot => target[slot] === normalizedPin);
+            if (existingSlot) return existingSlot;
+            const emptySlot = slots.find(slot => !target[slot] || target[slot] === "NO_PIN");
+            if (emptySlot) target[emptySlot] = normalizedPin;
+            return emptySlot || null;
+        }
+
+        function allocateUserAnalogPin(target, pinName) {
+            const slots = ["analog0_pin", "analog1_pin", "analog2_pin", "analog3_pin"];
+            const normalizedPin = String(pinName || "NO_PIN");
+            const existingSlot = slots.find(slot => target[slot] === normalizedPin);
+            if (existingSlot) return existingSlot;
+            const emptySlot = slots.find(slot => !target[slot] || target[slot] === "NO_PIN");
+            if (emptySlot) target[emptySlot] = normalizedPin;
+            return emptySlot || null;
+        }
+
+        function ensurePwmSpindle(doc, pinName) {
+            const normalizedPin = stripPinModifiers(pinName);
+            if (!normalizedPin || normalizedPin === "NO_PIN" || doc.pwm) return;
+            doc.pwm = {
+                pwm_hz: 5000,
+                direction_pin: "NO_PIN",
+                output_pin: normalizedPin,
+                enable_pin: "NO_PIN",
+                disable_with_s0: false,
+                s0_with_disable: true,
+                spinup_ms: 0,
+                spindown_ms: 0,
+                tool_num: 0,
+                speed_map: "0=0.000% 10000=100.000%",
+                off_on_alarm: false
+            };
+        }
+
+        function appendMacroCommand(doc, macroIndex, command) {
+            if (!command) return;
+            const key = `Macro${macroIndex}`;
+            const existing = String(doc.macros?.[key] || "").trim();
+            if (!existing) {
+                doc.macros[key] = command;
+                return;
+            }
+            const commands = existing.split("&").map(item => item.trim()).filter(Boolean);
+            if (!commands.includes(command)) {
+                doc.macros[key] = `${existing} & ${command}`;
+            }
+        }
+
+        function ensureAxisHoming(axis) {
+            if (!axis.homing || typeof axis.homing !== "object") {
+                axis.homing = {
+                    cycle: 2,
+                    mpos_mm: 0,
+                    positive_direction: false,
+                    seek_mm_per_min: axis.max_rate_mm_per_min || 1000.0,
+                    feed_mm_per_min: Math.max(100, Math.round((axis.max_rate_mm_per_min || 1000.0) / 2))
+                };
+            }
+            return axis.homing;
+        }
+
+        function resolveDirectionPin(basePin, invert) {
+            const raw = String(basePin || "NO_PIN");
+            if (raw === "NO_PIN") return raw;
+            const pin = raw.replace(":low", "");
+            const baseLow = raw.includes(":low");
+            const effectiveLow = invert ? !baseLow : baseLow;
+            return effectiveLow ? `${pin}:low` : pin;
+        }
+
         function applyAxisSettings(doc, axisKey, data) {
+            const axisPins = HARDWARE_PIN_MAP.axes[axisKey] || {};
+            if (toBool(data["axis-io-enabled"], false) && axisPins.io_pin && stripPinModifiers(axisPins.io_pin) !== "NO_PIN") {
+                allocateUserGpioPin(doc.user_inputs, axisPins.io_pin);
+                allocateUserGpioPin(doc.user_outputs, axisPins.io_pin);
+            }
+            if (toBool(data["axis-adc-enabled"], false) && axisPins.adc_pin && String(axisPins.adc_pin) !== "NO_PIN") {
+                allocateUserAnalogPin(doc.user_inputs, axisPins.adc_pin);
+            }
+            if (!toBool(data["axis-enable"], true)) {
+                const axis = doc.axes[axisKey];
+                if (axis) {
+                    axis.motor0.standard_stepper.step_pin = "NO_PIN";
+                    axis.motor0.standard_stepper.direction_pin = "NO_PIN";
+                    axis.motor0.standard_stepper.disable_pin = "NO_PIN";
+                }
+
+                const gpioRoles = [
+                    { role: String(data["axis-step-role"] || "unused").toLowerCase(), pin: axisPins.step_pin },
+                    { role: String(data["axis-dir-role"] || "unused").toLowerCase(), pin: axisPins.direction_pin }
+                ];
+
+                gpioRoles.forEach(({ role, pin }) => {
+                    const normalizedPin = stripPinModifiers(pin);
+                    if (!pin || normalizedPin === "NO_PIN") return;
+                    if (role === "input") allocateUserGpioPin(doc.user_inputs, normalizedPin);
+                    if (role === "output") allocateUserGpioPin(doc.user_outputs, normalizedPin);
+                    if (role === "spindle") ensurePwmSpindle(doc, normalizedPin);
+                });
+                return;
+            }
+
             const axis = doc.axes[axisKey];
             if (!axis) return;
+
             axis.steps_per_mm = toNum(data["axis-steps"], axis.steps_per_mm);
             axis.max_rate_mm_per_min = toNum(data["axis-speed"], axis.max_rate_mm_per_min);
             axis.acceleration_mm_per_sec2 = toNum(data["axis-accel"], axis.acceleration_mm_per_sec2);
             axis.max_travel_mm = toNum(data["axis-max-travel"], axis.max_travel_mm);
             axis.soft_limits = toBool(data["axis-soft-limits"], axis.soft_limits);
             axis.motor0.hard_limits = toBool(data["axis-hard-limits"], axis.motor0.hard_limits);
+            ensureAxisHoming(axis).positive_direction = String(data["axis-home-dir"] || "min").toLowerCase() === "max";
             const invert = toBool(data["axis-invert"], false);
-            const dir = String(axis.motor0.standard_stepper.direction_pin || "");
-            if (invert && !dir.includes(":low")) axis.motor0.standard_stepper.direction_pin = `${dir}:low`;
-            if (!invert) axis.motor0.standard_stepper.direction_pin = dir.replace(":low", "");
-            if (!toBool(data["axis-enable"], true)) {
-                axis.motor0.standard_stepper.step_pin = "NO_PIN";
-                axis.motor0.standard_stepper.direction_pin = "NO_PIN";
-                axis.motor0.standard_stepper.disable_pin = "NO_PIN";
-            }
+            axis.motor0.standard_stepper.direction_pin = resolveDirectionPin(
+                axisPins.direction_pin || axis.motor0.standard_stepper.direction_pin,
+                invert
+            );
         }
 
         function buildConfigYamlFromGui() {
@@ -2858,6 +3252,10 @@
                 const normalizedPin = activeLow ? `${pinName}:pu` : pinName;
                 if (fn === "estop") doc.control.estop_pin = normalizedPin;
                 if (fn === "probe") doc.probe.pin = normalizedPin;
+                if (fn === "door") doc.control.safety_door_pin = normalizedPin;
+                if (fn === "pause") doc.control.feed_hold_pin = normalizedPin;
+                if (fn === "resume") doc.control.cycle_start_pin = normalizedPin;
+                if (fn === "gcode") doc.control.macro0_pin = normalizedPin;
                 if (fn === "limit") mapInputToAxisLimit(doc, normalizedPin, {
                     axis: data["input-axis"],
                     direction: data["input-direction"]
@@ -2872,7 +3270,17 @@
                     doc.user_outputs[targetKey] = "NO_PIN";
                     return;
                 }
-                doc.user_outputs[targetKey] = HARDWARE_PIN_MAP.headers[relayId] || "NO_PIN";
+                const pinName = HARDWARE_PIN_MAP.headers[relayId] || "NO_PIN";
+                doc.user_outputs[targetKey] = pinName;
+                const outputIndex = parseInt((targetKey.match(/digital(\d+)_pin/) || [])[1], 10);
+                const onMacro = data["relay-on-macro"];
+                const offMacro = data["relay-off-macro"];
+                if (Number.isInteger(outputIndex)) {
+                    const onIndex = onMacro === "" || onMacro == null ? null : Math.max(0, Math.min(3, parseInt(onMacro, 10)));
+                    const offIndex = offMacro === "" || offMacro == null ? null : Math.max(0, Math.min(3, parseInt(offMacro, 10)));
+                    if (Number.isInteger(onIndex)) appendMacroCommand(doc, onIndex, `M64 P${outputIndex}`);
+                    if (Number.isInteger(offIndex)) appendMacroCommand(doc, offIndex, `M65 P${outputIndex}`);
+                }
             });
 
             if (pins.output1 && toBool(pins.output1["output-enabled"], false)) {
@@ -2899,6 +3307,42 @@
             } catch (err) {
                 logConsole(`config.yaml update failed: ${err.message}`, "error");
             }
+        }
+
+        function downloadGeneratedConfigYaml() {
+            if (currentActiveHotspot) {
+                saveConfiguration();
+            }
+            const yaml = buildConfigYamlFromGui();
+            const blob = new Blob([yaml], { type: "text/yaml" });
+            const url = URL.createObjectURL(blob);
+            const linkElement = document.createElement("a");
+            linkElement.href = url;
+            linkElement.download = "generated-config.yaml";
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+            URL.revokeObjectURL(url);
+            logConsole("Generated YAML downloaded", "receive");
+        }
+
+        function downloadRawPinConfig() {
+            if (currentActiveHotspot) {
+                saveConfiguration();
+            }
+            const payload = {
+                pins: JSON.parse(JSON.stringify(config?.pins || {}))
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const linkElement = document.createElement("a");
+            linkElement.href = url;
+            linkElement.download = "raw-pin-config.json";
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+            URL.revokeObjectURL(url);
+            logConsole("Raw pin data downloaded", "receive");
         }
 
         // Tab Navigation
@@ -3247,17 +3691,25 @@
                 const raw = await fetchCommandText("[ESP430]", false);
                 const m0 = raw.match(/Analog0:\s*([-+]?\d*\.?\d+)\s*V/i);
                 const m1 = raw.match(/Analog1:\s*([-+]?\d*\.?\d+)\s*V/i);
+                const m2 = raw.match(/Analog2:\s*([-+]?\d*\.?\d+)\s*V/i);
+                const m3 = raw.match(/Analog3:\s*([-+]?\d*\.?\d+)\s*V/i);
                 const a0 = m0 ? Number(m0[1]) : NaN;
                 const a1 = m1 ? Number(m1[1]) : NaN;
+                const a2 = m2 ? Number(m2[1]) : NaN;
+                const a3 = m3 ? Number(m3[1]) : NaN;
 
                 updateTelemetry({
                     analog0_v: Number.isFinite(a0) ? a0 : null,
-                    analog1_v: Number.isFinite(a1) ? a1 : null
+                    analog1_v: Number.isFinite(a1) ? a1 : null,
+                    analog2_v: Number.isFinite(a2) ? a2 : null,
+                    analog3_v: Number.isFinite(a3) ? a3 : null
                 });
             } catch (err) {
                 updateTelemetry({
                     analog0_v: null,
-                    analog1_v: null
+                    analog1_v: null,
+                    analog2_v: null,
+                    analog3_v: null
                 });
             }
         }
@@ -3372,21 +3824,11 @@
             if (e.key === "Enter") sendCommand();
         });
 
-        async function runMacro(macroId) {
-            const macroCommands = {
-                "probe-z": ["G91", "G38.2 Z-20 F100", "G90"],
-                "park": ["G90", "G0 X0 Y0", "G0 Z10"],
-                "spindle-warmup": ["M3 S5000", "G4 P5", "M5"],
-                "tool-change": ["M5", "G90", "G0 X0 Y0 Z10", "M0"]
-            };
-            const commands = macroCommands[macroId] || [];
-            for (const cmd of commands) {
-                try {
-                    await sendFluidCommand(cmd, true);
-                } catch (err) {
-                    logConsole(`Macro failed: ${err.message}`, "error");
-                    break;
-                }
+        async function runMacro(macroIndex) {
+            try {
+                await sendFluidCommand(`$Macros/Run=${macroIndex}`);
+            } catch (err) {
+                logConsole(`Macro failed: ${err.message}`, "error");
             }
         }
 
@@ -3455,6 +3897,67 @@
                     }
                 }
             });
+
+            updateAxisConnectorUi(terminalId);
+            updateInputConfigUi();
+        }
+
+        function updateInputConfigUi() {
+            const fn = String(document.getElementById("input-function")?.value || "limit").toLowerCase();
+            const limitOptions = document.querySelectorAll(".input-limit-option");
+            const showLimitOptions = fn === "limit";
+            limitOptions.forEach(option => {
+                option.style.display = showLimitOptions ? "" : "none";
+            });
+        }
+
+        function updateAxisConnectorUi(terminalId = currentActiveHotspot?.id) {
+            const axisEnable = document.querySelector('input[name="axis-enable"]');
+            const gpioOptions = document.querySelector(".axis-gpio-options");
+            const stepLabel = document.getElementById("axis-step-role-label");
+            const dirLabel = document.getElementById("axis-dir-role-label");
+            if (!axisEnable || !gpioOptions || !stepLabel || !dirLabel) return;
+
+            const axisKey = HARDWARE_PIN_MAP.axis_headers[terminalId];
+            const axisPins = axisKey ? (HARDWARE_PIN_MAP.axes[axisKey] || {}) : {};
+            const stepPin = stripPinModifiers(axisPins.step_pin);
+            const dirPin = stripPinModifiers(axisPins.direction_pin);
+            const axisDisabled = !axisEnable.checked;
+
+            gpioOptions.style.display = axisDisabled ? "block" : "none";
+            stepLabel.textContent = `Step Pin (${stepPin || "NO_PIN"})`;
+            dirLabel.textContent = `Dir Pin (${dirPin || "NO_PIN"})`;
+
+            const stepperFields = [
+                document.querySelector('.axis-selector')?.closest(".config-item"),
+                document.getElementById("axis-speed")?.closest(".config-item"),
+                document.getElementById("axis-accel")?.closest(".config-item")
+            ];
+            stepperFields.forEach(field => {
+                if (field) field.style.display = axisDisabled ? "none" : "";
+            });
+
+            const axisConfig = document.getElementById("axisConfig");
+            if (!axisConfig) return;
+
+            const managedTabs = [
+                { button: axisConfig.querySelector('.sub-tab[data-sub="axis-limits"]'), content: document.getElementById("axis-limits") },
+                { button: axisConfig.querySelector('.sub-tab[data-sub="axis-motors"]'), content: document.getElementById("axis-motors") }
+            ];
+
+            managedTabs.forEach(({ button, content }) => {
+                if (button) button.style.display = axisDisabled ? "none" : "";
+                if (content && axisDisabled) content.classList.remove("active");
+            });
+
+            const mainTab = axisConfig.querySelector('.sub-tab[data-sub="axis-main"]');
+            const mainContent = document.getElementById("axis-main");
+            if (axisDisabled && mainTab && mainContent) {
+                axisConfig.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                axisConfig.querySelectorAll('.sub-content').forEach(content => content.classList.remove('active'));
+                mainTab.classList.add("active");
+                mainContent.classList.add("active");
+            }
         }
 
         function getHotspotCoords(hotspotElement) {
@@ -3551,6 +4054,12 @@
 
             if (clickedHotspot) {
                 event.stopPropagation();
+                const terminalType = clickedHotspot.dataset.terminalType;
+                if (terminalType === "utility" && clickedHotspot.id === "wifi-module") {
+                    updateHighlight(clickedHotspot);
+                    openWifiSettings();
+                    return;
+                }
                 
                 if (currentActiveHotspot && currentActiveHotspot !== clickedHotspot) {
                     currentActiveHotspot.classList.remove('active');
@@ -3562,7 +4071,6 @@
                 updateHighlight(clickedHotspot);
 
                 const terminalName = clickedHotspot.dataset.terminalName;
-                const terminalType = clickedHotspot.dataset.terminalType;
 
                 panelTitle.textContent = `Configure: ${terminalName}`;
                 showConfigSection(terminalType);
@@ -3627,6 +4135,14 @@
                     positionConfigPanel(coords);
                 }
             }
+        });
+
+        document.querySelector('input[name="axis-enable"]')?.addEventListener("change", () => {
+            updateAxisConnectorUi();
+        });
+
+        document.getElementById("input-function")?.addEventListener("change", () => {
+            updateInputConfigUi();
         });
 
         function saveConfiguration() {
@@ -3987,6 +4503,11 @@
             const sourceEl = document.getElementById("status-widget-source");
             const unitEl = document.getElementById("status-widget-unit");
             const decimalsEl = document.getElementById("status-widget-decimals");
+            const mapEnabledEl = document.getElementById("status-widget-map-enabled");
+            const mapInputMinEl = document.getElementById("status-widget-map-input-min");
+            const mapInputMaxEl = document.getElementById("status-widget-map-input-max");
+            const mapOutputMinEl = document.getElementById("status-widget-map-output-min");
+            const mapOutputMaxEl = document.getElementById("status-widget-map-output-max");
             const toneEl = document.getElementById("status-widget-tone");
             const liveEl = document.getElementById("status-widget-live");
             const manualEl = document.getElementById("status-widget-manual");
@@ -4011,12 +4532,29 @@
             });
             sourceEl?.addEventListener("change", (event) => {
                 mutateSelectedStatusWidget(widget => ({ ...widget, source: event.target.value }));
+                syncStatusWidgetMapUi();
             });
             unitEl?.addEventListener("input", (event) => {
                 mutateSelectedStatusWidget(widget => ({ ...widget, unit: event.target.value }));
             });
             decimalsEl?.addEventListener("input", (event) => {
                 mutateSelectedStatusWidget(widget => ({ ...widget, decimals: Number(event.target.value) }));
+            });
+            mapEnabledEl?.addEventListener("change", (event) => {
+                syncStatusWidgetMapUi();
+                mutateSelectedStatusWidget(widget => ({ ...widget, mapEnabled: event.target.checked }));
+            });
+            mapInputMinEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, mapInputMin: Number(event.target.value) }));
+            });
+            mapInputMaxEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, mapInputMax: Number(event.target.value) }));
+            });
+            mapOutputMinEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, mapOutputMin: Number(event.target.value) }));
+            });
+            mapOutputMaxEl?.addEventListener("input", (event) => {
+                mutateSelectedStatusWidget(widget => ({ ...widget, mapOutputMax: Number(event.target.value) }));
             });
             toneEl?.addEventListener("change", (event) => {
                 mutateSelectedStatusWidget(widget => ({ ...widget, tone: event.target.value }));
@@ -4031,6 +4569,8 @@
         }
 
         window.addEventListener('load', () => {
+            document.getElementById("add-dashboard-macro")?.addEventListener("click", addDashboardMacro);
+
             document.getElementById("home-all-btn").addEventListener("click", async () => {
                 try {
                     await sendFluidCommand("$H");
@@ -4047,15 +4587,15 @@
                 }
             });
 
-            document.getElementById("feedhold-btn").addEventListener("click", async () => {
+            document.getElementById("pause-program-btn").addEventListener("click", async () => {
                 try {
                     await sendRealtimeCommand("!", false);
                 } catch (err) {
-                    logConsole(`Feed hold failed: ${err.message}`, "error");
+                    logConsole(`Pause failed: ${err.message}`, "error");
                 }
             });
 
-            document.getElementById("resume-btn").addEventListener("click", async () => {
+            document.getElementById("resume-program-btn").addEventListener("click", async () => {
                 try {
                     await sendRealtimeCommand("~", false);
                 } catch (err) {
@@ -4099,6 +4639,7 @@
             initializeStatusWidgetEditor();
             initializeWifiEditor();
             renderStatusWidgets();
+            renderDashboardMacros();
             initFluidNC();
             refreshFiles();
             refreshUserOutputVoltages();
