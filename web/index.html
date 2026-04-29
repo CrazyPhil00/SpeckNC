@@ -919,6 +919,7 @@
         }
 
         .config-item select,
+        .config-item input[type="text"],
         .config-item input[type="number"] {
             width: 100%;
             padding: 0.75rem;
@@ -931,6 +932,7 @@
         }
 
         .config-item select:focus,
+        .config-item input[type="text"]:focus,
         .config-item input[type="number"]:focus {
             outline: none;
             border-color: var(--accent-primary);
@@ -1650,24 +1652,8 @@
                                 </label>
                             </div>
                             <div class="config-item">
-                                <label>On Macro</label>
-                                <select id="relay-on-macro" name="relay-on-macro">
-                                    <option value="" selected>None</option>
-                                    <option value="0">Macro0</option>
-                                    <option value="1">Macro1</option>
-                                    <option value="2">Macro2</option>
-                                    <option value="3">Macro3</option>
-                                </select>
-                            </div>
-                            <div class="config-item">
-                                <label>Off Macro</label>
-                                <select id="relay-off-macro" name="relay-off-macro">
-                                    <option value="" selected>None</option>
-                                    <option value="0">Macro0</option>
-                                    <option value="1">Macro1</option>
-                                    <option value="2">Macro2</option>
-                                    <option value="3">Macro3</option>
-                                </select>
+                                <label>Label</label>
+                                <input type="text" id="relay-label" name="relay-label" maxlength="40" placeholder="Light, Vacuum, Coolant...">
                             </div>
                         </div>
 
@@ -1713,7 +1699,6 @@
                                         <label id="axis-step-role-label">Step Pin</label>
                                         <select id="axis-step-role" name="axis-step-role">
                                             <option value="unused" selected>Unused</option>
-                                            <option value="input">Digital Input</option>
                                             <option value="output">Digital Output</option>
                                             <option value="spindle">Spindle PWM</option>
                                         </select>
@@ -1722,7 +1707,6 @@
                                         <label id="axis-dir-role-label">Dir Pin</label>
                                         <select id="axis-dir-role" name="axis-dir-role">
                                             <option value="unused" selected>Unused</option>
-                                            <option value="input">Digital Input</option>
                                             <option value="output">Digital Output</option>
                                             <option value="spindle">Spindle PWM</option>
                                         </select>
@@ -2146,18 +2130,26 @@
             const fallbackEditor = document.getElementById("fallback-editor");
             await ensureAceLoaded();
             if (window.ace && typeof window.ace.edit === "function") {
-                fallbackEditor.style.display = "none";
-                aceElement.style.display = "block";
-                aceEditor = ace.edit("ace-editor");
-                aceEditor.setTheme("ace/theme/monokai");
-                aceEditor.session.setMode("ace/mode/gcode");
-                aceEditor.setOptions({
-                    fontSize: "14px",
-                    showPrintMargin: false,
-                    enableBasicAutocompletion: true,
-                    enableLiveAutocompletion: true
-                });
-                return;
+                try {
+                    fallbackEditor.style.display = "none";
+                    aceElement.style.display = "block";
+                    aceEditor = ace.edit("ace-editor");
+                    try {
+                        aceEditor.setTheme("ace/theme/monokai");
+                    } catch (_) {}
+                    try {
+                        aceEditor.session.setMode("ace/mode/gcode");
+                    } catch (_) {}
+                    aceEditor.setOptions({
+                        fontSize: "14px",
+                        showPrintMargin: false,
+                        enableBasicAutocompletion: true,
+                        enableLiveAutocompletion: true
+                    });
+                    return;
+                } catch (_) {
+                    aceEditor = null;
+                }
             }
 
             aceElement.style.display = "none";
@@ -2350,6 +2342,23 @@
             };
         }
 
+        function getRelayMetadata(outputIndex) {
+            const relayMap = [
+                { relayId: "relay1", outputIndex: 0 },
+                { relayId: "relay2", outputIndex: 1 },
+                { relayId: "relay3", outputIndex: 2 },
+                { relayId: "output1", outputIndex: 3 }
+            ];
+            const match = relayMap.find(entry => entry.outputIndex === outputIndex);
+            if (!match) return { relayId: null, label: `Output P${outputIndex}` };
+            const saved = config?.pins?.[match.relayId] || {};
+            const label = String(saved["relay-label"] || "").trim();
+            return {
+                relayId: match.relayId,
+                label: label || `Output P${outputIndex}`
+            };
+        }
+
         function getDashboardMacros() {
             if (!config.settings || typeof config.settings !== "object") config.settings = {};
             if (!Array.isArray(config.settings.dashboardMacros)) {
@@ -2403,8 +2412,6 @@
         function addDashboardMacro() {
             const modeInput = (prompt("Button type: 'macro' or 'toggle'", "macro") || "").trim().toLowerCase();
             const mode = modeInput === "toggle" ? "toggle" : "macro";
-            const label = (prompt("Macro label", "") || "").trim();
-            if (!label) return;
             const macros = getDashboardMacros();
             if (mode === "toggle") {
                 const outputInput = (prompt("Relay output number P(0-3)", "0") || "").trim();
@@ -2413,8 +2420,13 @@
                     logConsole("Relay output must be a number from 0 to 3", "error");
                     return;
                 }
+                const relayMeta = getRelayMetadata(outputIndex);
+                const label = (prompt("Button label", relayMeta.label) || "").trim();
+                if (!label) return;
                 macros.push(normalizeDashboardMacro({ label, mode, outputIndex, state: false }));
             } else {
+                const label = (prompt("Macro label", "") || "").trim();
+                if (!label) return;
                 const slotInput = (prompt("Macro slot (0-3)", "0") || "").trim();
                 const macroIndex = parseInt(slotInput, 10);
                 if (!Number.isInteger(macroIndex) || macroIndex < 0 || macroIndex > 3) {
@@ -2790,10 +2802,13 @@
 
             if (value && typeof value === "object") {
                 const keys = Object.keys(value);
-                if (!keys.length) return `${pad}{}`;
+                if (!keys.length) return `${pad}`;
                 return keys.map(key => {
                     const v = value[key];
                     if (v && typeof v === "object") {
+                        if (!Object.keys(v).length) {
+                            return `${pad}${key}:`;
+                        }
                         return `${pad}${key}:\n${objectToYaml(v, indent + 1)}`;
                     }
                     return `${pad}${key}: ${yamlScalar(v)}`;
@@ -2923,29 +2938,26 @@
         // Global hardware pin map: edit this single object to remap pin headers and axis motor GPIOs.
         const HARDWARE_PIN_MAP = {
             headers: {
-                input1: "gpio.41",
-                input2: "gpio.42",
-                input3: "gpio.43",
-                input4: "gpio.40",
-                relay1: "NO_PIN",
+                input1: "gpio.48",
+                input2: "gpio.47",
+                input3: "NO_PIN",
+                input4: "NO_PIN",
+                relay1: "gpio.39",
                 relay2: "gpio.38",
-                relay3: "gpio.39",
-                output1: "gpio.40"
+                relay3: "NO_PIN",
+                output1: "NO_PIN"
             },
             axes: {
-                x: { step_pin: "gpio.4", direction_pin: "gpio.5", disable_pin: "NO_PIN", io_pin: "gpio.3", adc_pin: "ads1115_1.0" },
-                y: { step_pin: "gpio.6", direction_pin: "gpio.7", disable_pin: "NO_PIN", io_pin: "gpio.9", adc_pin: "ads1115_1.1" },
-                z: { step_pin: "gpio.15", direction_pin: "gpio.16", disable_pin: "NO_PIN", io_pin: "gpio.14", adc_pin: "ads1115_1.2" },
-                a: { step_pin: "gpio.17", direction_pin: "gpio.18", disable_pin: "NO_PIN", io_pin: "gpio.21", adc_pin: "ads1115_1.3" }
+                x: { step_pin: "gpio.4", direction_pin: "gpio.5", disable_pin: "NO_PIN", io_pin: "NO_PIN", adc_pin: "ads1115_0.0" },
+                y: { step_pin: "gpio.6", direction_pin: "gpio.7", disable_pin: "gpio.9", io_pin: "NO_PIN", adc_pin: "ads1115_0.1" },
+                z: { step_pin: "gpio.15", direction_pin: "gpio.16", disable_pin: "gpio.14", io_pin: "NO_PIN", adc_pin: "ads1115_0.2" },
+                a: { step_pin: "gpio.17", direction_pin: "gpio.18", disable_pin: "NO_PIN", io_pin: "NO_PIN", adc_pin: "ads1115_0.3" }
             },
             axis_headers: {
                 "axis1": "x",
                 "axis2": "y",
                 "axis3": "z",
                 "axis4": "a"
-            },
-            control: {
-                estop_pin: "gpio.3:pu"
             },
             spi: {
                 miso_pin: "gpio.13",
@@ -2970,15 +2982,13 @@
                 disable_delay_us: 0,
                 segments: 12
             },
+            i2c0: {
+                sda_pin: "gpio.2",
+                scl_pin: "gpio.1"
+            },
             extenders: {
                 ads1115_0: {
                     address: "0x48",
-                    pga: 2,
-                    data_rate: 4,
-                    continuous_mode: false
-                },
-                ads1115_1: {
-                    address: "0x49",
                     pga: 2,
                     data_rate: 4,
                     continuous_mode: false
@@ -2994,7 +3004,9 @@
                 card_detect_pin: HARDWARE_PIN_MAP.sdcard.card_detect_pin,
                 frequency_hz: 8000000
             },
-            kinematics: { Cartesian: {} },
+            kinematics: {
+                Cartesian: {}
+            },
             axes: {
                 shared_stepper_disable_pin: "NO_PIN",
                 shared_stepper_reset_pin: "NO_PIN",
@@ -3011,7 +3023,11 @@
                         limit_all_pin: "NO_PIN",
                         hard_limits: false,
                         pulloff_mm: 1.0,
-                        standard_stepper: { step_pin: HARDWARE_PIN_MAP.axes.x.step_pin, direction_pin: HARDWARE_PIN_MAP.axes.x.direction_pin, disable_pin: HARDWARE_PIN_MAP.axes.x.disable_pin },
+                        standard_stepper: {
+                            step_pin: HARDWARE_PIN_MAP.axes.x.step_pin,
+                            direction_pin: HARDWARE_PIN_MAP.axes.x.direction_pin,
+                            disable_pin: HARDWARE_PIN_MAP.axes.x.disable_pin
+                        },
                         null_motor: {}
                     }
                 },
@@ -3027,7 +3043,11 @@
                         limit_all_pin: "NO_PIN",
                         hard_limits: false,
                         pulloff_mm: 1.0,
-                        standard_stepper: { step_pin: HARDWARE_PIN_MAP.axes.y.step_pin, direction_pin: HARDWARE_PIN_MAP.axes.y.direction_pin, disable_pin: HARDWARE_PIN_MAP.axes.y.disable_pin },
+                        standard_stepper: {
+                            step_pin: HARDWARE_PIN_MAP.axes.y.step_pin,
+                            direction_pin: HARDWARE_PIN_MAP.axes.y.direction_pin,
+                            disable_pin: HARDWARE_PIN_MAP.axes.y.disable_pin
+                        },
                         null_motor: {}
                     }
                 },
@@ -3043,7 +3063,11 @@
                         limit_all_pin: "NO_PIN",
                         hard_limits: false,
                         pulloff_mm: 1.0,
-                        standard_stepper: { step_pin: HARDWARE_PIN_MAP.axes.z.step_pin, direction_pin: HARDWARE_PIN_MAP.axes.z.direction_pin, disable_pin: HARDWARE_PIN_MAP.axes.z.disable_pin },
+                        standard_stepper: {
+                            step_pin: HARDWARE_PIN_MAP.axes.z.step_pin,
+                            direction_pin: HARDWARE_PIN_MAP.axes.z.direction_pin,
+                            disable_pin: HARDWARE_PIN_MAP.axes.z.disable_pin
+                        },
                         null_motor: {}
                     }
                 }
@@ -3058,15 +3082,28 @@
                 macro2_pin: "NO_PIN",
                 macro3_pin: "NO_PIN",
                 fault_pin: "NO_PIN",
-                estop_pin: HARDWARE_PIN_MAP.control.estop_pin
+                estop_pin: "NO_PIN"
             },
-            coolant: { flood_pin: "NO_PIN", mist_pin: "NO_PIN", delay_ms: 0 },
-            probe: { pin: "NO_PIN", toolsetter_pin: "NO_PIN", check_mode_start: true, hard_stop: false },
+            coolant: {
+                flood_pin: "NO_PIN",
+                mist_pin: "NO_PIN",
+                delay_ms: 0
+            },
+            probe: {
+                pin: "NO_PIN",
+                toolsetter_pin: "NO_PIN",
+                check_mode_start: true,
+                hard_stop: false
+            },
             macros: {
                 startup_line0: "", startup_line1: "", Macro0: "", Macro1: "", Macro2: "", Macro3: "",
                 after_homing: "", after_reset: "", after_unlock: ""
             },
-            start: { must_home: false, deactivate_parking: false, check_limits: true },
+            start: {
+                must_home: false,
+                deactivate_parking: false,
+                check_limits: true
+            },
             parking: {
                 enable: false, axis: "Z", target_mpos_mm: -5.0, rate_mm_per_min: 800.0, pullout_distance_mm: 5.0, pullout_rate_mm_per_min: 250.0
             },
@@ -3143,20 +3180,6 @@
             };
         }
 
-        function appendMacroCommand(doc, macroIndex, command) {
-            if (!command) return;
-            const key = `Macro${macroIndex}`;
-            const existing = String(doc.macros?.[key] || "").trim();
-            if (!existing) {
-                doc.macros[key] = command;
-                return;
-            }
-            const commands = existing.split("&").map(item => item.trim()).filter(Boolean);
-            if (!commands.includes(command)) {
-                doc.macros[key] = `${existing} & ${command}`;
-            }
-        }
-
         function ensureAxisHoming(axis) {
             if (!axis.homing || typeof axis.homing !== "object") {
                 axis.homing = {
@@ -3204,7 +3227,6 @@
                 gpioRoles.forEach(({ role, pin }) => {
                     const normalizedPin = stripPinModifiers(pin);
                     if (!pin || normalizedPin === "NO_PIN") return;
-                    if (role === "input") allocateUserGpioPin(doc.user_inputs, normalizedPin);
                     if (role === "output") allocateUserGpioPin(doc.user_outputs, normalizedPin);
                     if (role === "spindle") ensurePwmSpindle(doc, normalizedPin);
                 });
@@ -3272,15 +3294,6 @@
                 }
                 const pinName = HARDWARE_PIN_MAP.headers[relayId] || "NO_PIN";
                 doc.user_outputs[targetKey] = pinName;
-                const outputIndex = parseInt((targetKey.match(/digital(\d+)_pin/) || [])[1], 10);
-                const onMacro = data["relay-on-macro"];
-                const offMacro = data["relay-off-macro"];
-                if (Number.isInteger(outputIndex)) {
-                    const onIndex = onMacro === "" || onMacro == null ? null : Math.max(0, Math.min(3, parseInt(onMacro, 10)));
-                    const offIndex = offMacro === "" || offMacro == null ? null : Math.max(0, Math.min(3, parseInt(offMacro, 10)));
-                    if (Number.isInteger(onIndex)) appendMacroCommand(doc, onIndex, `M64 P${outputIndex}`);
-                    if (Number.isInteger(offIndex)) appendMacroCommand(doc, offIndex, `M65 P${outputIndex}`);
-                }
             });
 
             if (pins.output1 && toBool(pins.output1["output-enabled"], false)) {
@@ -3346,15 +3359,18 @@
         }
 
         // Tab Navigation
+        function switchToTab(targetTab) {
+            document.querySelectorAll('.nav-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === targetTab);
+            });
+            document.querySelectorAll('.tab-content').forEach(c => {
+                c.classList.toggle('active', c.id === targetTab);
+            });
+        }
+
         document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                const targetTab = tab.dataset.tab;
-                
-                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(targetTab).classList.add('active');
+                switchToTab(tab.dataset.tab);
             });
         });
 
@@ -4233,6 +4249,7 @@
             const fullPath = `${currentFileBasePath()}${fluid.currentPath}${filename}`.replace(/\/+/g, "/");
             try {
                 await sendFluidCommand(`[ESP700]${fullPath}`);
+                switchToTab("dashboard");
             } catch (err) {
                 logConsole(`Run failed: ${err.message}`, "error");
             }
